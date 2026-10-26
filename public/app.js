@@ -2201,11 +2201,62 @@ async function testBranchRecommendation() {
 // AI LEAD FINDER & 14-DAY RE-ENGAGEMENT PIPELINE
 // ============================================================================
 
+let leadSearchSource = 'web_search'; // 'web_search' (Firecrawl AI) or 'map_osm'
 let leadGovMode = 'random';
 let generatedLeads = [];
 let followup14dLeads = [];
 
+async function checkFirecrawlStatus() {
+  const dot = document.getElementById('fc-status-dot');
+  const text = document.getElementById('fc-status-text');
+  try {
+    const res = await fetch('/api/leads/firecrawl-status');
+    const data = await res.json();
+    if (data.configured) {
+      if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+      if (text) text.textContent = 'Firecrawl: جاهز ومتصل ⚡';
+    } else {
+      if (dot) dot.className = 'w-2 h-2 rounded-full bg-amber-400';
+      if (text) text.textContent = 'Firecrawl: يرجى إضافة المفتاح ⚠️';
+    }
+  } catch (e) {
+    if (dot) dot.className = 'w-2 h-2 rounded-full bg-rose-400';
+    if (text) text.textContent = 'Firecrawl: غير متصل';
+  }
+}
+
+function setLeadSource(source) {
+  leadSearchSource = source;
+  const btnFc = document.getElementById('btn-source-firecrawl');
+  const btnOsm = document.getElementById('btn-source-osm');
+  const webLoc = document.getElementById('web-location-box');
+  const webAdv = document.getElementById('web-advanced-box');
+  const mapGeo = document.getElementById('map-geo-box');
+  const customGovs = document.getElementById('custom-govs-container');
+  const attrText = document.getElementById('leads-attribution-text');
+
+  if (source === 'web_search') {
+    if (btnFc) btnFc.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-2 transition-all';
+    if (btnOsm) btnOsm.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 border border-slate-700 hover:text-white flex items-center gap-2 transition-all';
+    if (webLoc) webLoc.classList.remove('hidden');
+    if (webAdv) webAdv.classList.remove('hidden');
+    if (mapGeo) mapGeo.classList.add('hidden');
+    if (customGovs) customGovs.classList.add('hidden');
+    if (attrText) attrText.textContent = 'بيانات مستخرجة ومحققة بالذكاء الاصطناعي بواسطة Firecrawl & Gemini AI';
+  } else {
+    if (btnFc) btnFc.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 border border-slate-700 hover:text-white flex items-center gap-2 transition-all';
+    if (btnOsm) btnOsm.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-2 transition-all';
+    if (webLoc) webLoc.classList.add('hidden');
+    if (webAdv) webAdv.classList.add('hidden');
+    if (mapGeo) mapGeo.classList.remove('hidden');
+    if (leadGovMode === 'custom' && customGovs) customGovs.classList.remove('hidden');
+    if (attrText) attrText.textContent = 'بيانات الخرائط مقدمة من مساهمي © OpenStreetMap';
+  }
+}
+
 function initLeadsTab() {
+  checkFirecrawlStatus();
+  setLeadSource(leadSearchSource);
   renderGovCheckboxes();
   load14DayFollowups();
 }
@@ -2279,19 +2330,10 @@ async function startAILeadSearch() {
   const loaderEl = document.getElementById('leads-search-loader');
   const resultsCardEl = document.getElementById('leads-results-card');
   const btnStart = document.getElementById('btn-start-lead-search');
+  const loaderStatus = document.getElementById('leads-loader-status');
 
   const category = catEl ? catEl.value : 'all';
-  const count = countEl ? parseInt(countEl.value, 10) || 50 : 50;
-
-  let selectedGovs = [];
-  if (leadGovMode === 'custom') {
-    const checked = document.querySelectorAll('.gov-checkbox:checked');
-    checked.forEach(cb => selectedGovs.push(cb.value));
-    if (selectedGovs.length === 0) {
-      alert('يرجى اختيار محافظة واحدة على الأقل في وضع التحديد الجغرافي');
-      return;
-    }
-  }
+  const count = countEl ? parseInt(countEl.value, 10) || 10 : 10;
 
   if (loaderEl) loaderEl.classList.remove('hidden');
   if (resultsCardEl) resultsCardEl.classList.add('hidden');
@@ -2300,17 +2342,58 @@ async function startAILeadSearch() {
     btnStart.classList.add('opacity-60', 'cursor-not-allowed');
   }
 
+  let url = '/api/leads/find';
+  let payload = {};
+
+  if (leadSearchSource === 'web_search') {
+    if (loaderStatus) loaderStatus.textContent = 'جاري البحث عبر Firecrawl وقراءة صفحات المواقع واستخراج الشركات...';
+    const cityInput = document.getElementById('leads-city-input');
+    const keywordsInput = document.getElementById('leads-keywords-input');
+    const maxScrapesEl = document.getElementById('leads-max-scrapes');
+    const verifyWaEl = document.getElementById('leads-verify-wa');
+
+    url = '/api/leads/firecrawl-search';
+    payload = {
+      category,
+      city: cityInput ? cityInput.value.trim() : 'العاشر من رمضان',
+      keywords: keywordsInput ? keywordsInput.value.trim() : '',
+      count,
+      maxScrapes: maxScrapesEl ? parseInt(maxScrapesEl.value, 10) || 4 : 4,
+      verifyWhatsApp: Boolean(verifyWaEl && verifyWaEl.checked),
+      allowDuplicates: false
+    };
+  } else {
+    if (loaderStatus) loaderStatus.textContent = 'جاري استخراج الأماكن من خريطة OpenStreetMap...';
+    let selectedGovs = [];
+    if (leadGovMode === 'custom') {
+      const checked = document.querySelectorAll('.gov-checkbox:checked');
+      checked.forEach(cb => selectedGovs.push(cb.value));
+      if (selectedGovs.length === 0) {
+        alert('يرجى اختيار محافظة واحدة على الأقل في وضع التحديد الجغرافي');
+        if (loaderEl) loaderEl.classList.add('hidden');
+        if (btnStart) {
+          btnStart.disabled = false;
+          btnStart.classList.remove('opacity-60', 'cursor-not-allowed');
+        }
+        return;
+      }
+    }
+    url = '/api/leads/find';
+    payload = {
+      source: 'map_osm',
+      category,
+      count,
+      governorates: selectedGovs,
+      isRandom: leadGovMode === 'random',
+      allowDuplicates: false
+    };
+  }
+
   try {
-    const res = await fetch('/api/leads/find', {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        category,
-        count,
-        governorates: selectedGovs,
-        isRandom: leadGovMode === 'random',
-        allowDuplicates: false
-      })
+      body: JSON.stringify(payload)
     });
 
     const data = await res.json();
@@ -2321,7 +2404,7 @@ async function startAILeadSearch() {
 
       const dupText = document.getElementById('leads-dup-filtered-text');
       if (dupText) {
-        dupText.textContent = `تم استبعاد ${data.duplicatesFiltered || 0} أرقام مكررة كلمناها قبل كده 🛡️`;
+        dupText.textContent = `تم استبعاد ${data.duplicatesFiltered || 0} أرقام مكررة أو مسجلة سابقاً 🛡️`;
       }
 
       renderGeneratedLeadsTable(generatedLeads);
@@ -2360,18 +2443,54 @@ function renderGeneratedLeadsTable(leads) {
 
   tbody.innerHTML = leads.map((lead, index) => {
     const cleanPhone = (lead.phone || '').replace(/\D/g, '');
+    const isMobile = lead.phoneType === 'mobile' || /^201[0125]\d{8}$/.test(cleanPhone);
     const waLink = `https://wa.me/${cleanPhone}`;
+    const siteUrl = lead.website || lead.sourceUrl;
+    const siteDomain = siteUrl ? siteUrl.replace(/^https?:\/\//i, '').split('/')[0] : '';
+    const siteTitle = lead.sourceTitle || siteDomain || 'المصدر';
+
+    let verificationBadge = '';
+    if (lead.whatsappVerified === true) {
+      verificationBadge = `
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
+          <i class="fa-solid fa-circle-check text-[10px]"></i>
+          <span>واتساب مؤكد 100%</span>
+        </span>
+      `;
+    } else if (isMobile) {
+      verificationBadge = `
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30 whitespace-nowrap">
+          <i class="fa-solid fa-globe text-[10px]"></i>
+          <span>ويب (موبايل)</span>
+        </span>
+      `;
+    } else if (lead.phoneType === 'landline') {
+      verificationBadge = `
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-700 text-slate-300 border border-slate-600 whitespace-nowrap">
+          <i class="fa-solid fa-phone text-[10px]"></i>
+          <span>ويب (أرضي)</span>
+        </span>
+      `;
+    } else {
+      verificationBadge = `
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 whitespace-nowrap">
+          <i class="fa-solid fa-triangle-exclamation text-[10px]"></i>
+          <span>غير مؤكد</span>
+        </span>
+      `;
+    }
+
     return `
       <tr class="hover:bg-slate-800/60 transition-colors">
         <td class="p-3 text-center font-bold text-slate-400">${index + 1}</td>
         <td class="p-3">
           <div class="font-bold text-white text-xs">${escapeHtml(lead.company || lead.name || 'مكان غير معروف')}</div>
-          <div class="text-[10px] text-slate-400">${escapeHtml(lead.address || '')}</div>
+          ${lead.address ? `<div class="text-[10px] text-slate-400 mt-0.5">${escapeHtml(lead.address)}</div>` : ''}
+          ${lead.evidence ? `<div class="text-[10px] text-slate-500 italic truncate max-w-xs mt-0.5" title="${escapeHtml(lead.evidence)}">«${escapeHtml(lead.evidence)}»</div>` : ''}
         </td>
-        <td class="p-3 text-slate-300 text-xs">يا فندم</td>
         <td class="p-3 text-xs">
           <span class="text-amber-300 font-semibold">${escapeHtml(lead.governorate || '')}</span>
-          ${lead.city ? `<span class="text-slate-400"> - ${escapeHtml(lead.city)}</span>` : ''}
+          ${lead.city ? `<span class="text-slate-400 text-[11px] block">${escapeHtml(lead.city)}</span>` : ''}
         </td>
         <td class="p-3 text-xs">
           <span class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700">
@@ -2379,26 +2498,40 @@ function renderGeneratedLeadsTable(leads) {
           </span>
         </td>
         <td class="p-3">
-          <a href="${waLink}" target="_blank" class="font-mono text-emerald-400 hover:text-emerald-300 dir-ltr inline-flex items-center gap-1 font-semibold text-xs">
-            <i class="fa-brands fa-whatsapp text-sm"></i>
-            <span>${escapeHtml(lead.phone || '')}</span>
-          </a>
+          ${isMobile ? `
+            <a href="${waLink}" target="_blank" rel="noopener noreferrer" class="font-mono text-emerald-400 hover:text-emerald-300 dir-ltr inline-flex items-center gap-1 font-semibold text-xs">
+              <i class="fa-brands fa-whatsapp text-sm"></i>
+              <span>${escapeHtml(lead.phone || '')}</span>
+            </a>
+            <div class="mt-0.5"><span class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium">موبايل 📱</span></div>
+          ` : `
+            <span class="font-mono text-slate-300 dir-ltr inline-flex items-center gap-1 text-xs">
+              <i class="fa-solid fa-phone text-slate-400 text-xs"></i>
+              <span>${escapeHtml(lead.phone || '')}</span>
+            </span>
+            <div class="mt-0.5"><span class="text-[9px] px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 font-medium">أرضي ☎️</span></div>
+          `}
+        </td>
+        <td class="p-3 text-xs">
+          ${siteUrl ? `
+            <a href="${escapeHtml(siteUrl)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 text-[11px] font-medium max-w-[150px] truncate underline decoration-amber-400/40" title="${escapeHtml(siteTitle)} (${escapeHtml(siteUrl)})">
+              <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+              <span class="truncate">${escapeHtml(siteTitle)}</span>
+            </a>
+          ` : (lead.source === 'osm_overpass' ? `
+            <span class="text-slate-500 text-[10px] inline-flex items-center gap-1">
+              <i class="fa-solid fa-map-location-dot"></i>
+              <span>خريطة OSM</span>
+            </span>
+          ` : `
+            <span class="text-slate-500 text-[10px]">-</span>
+          `)}
         </td>
         <td class="p-3 text-slate-300 text-[11px] max-w-xs leading-snug">
           ${escapeHtml(lead.suggestedPackaging || 'عبوات ومستلزمات عامة')}
         </td>
         <td class="p-3 text-center">
-          ${lead.whatsappVerified !== false ? `
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
-              <i class="fa-solid fa-circle-check text-[10px]"></i>
-              <span>واتساب مؤكد 100%</span>
-            </span>
-          ` : `
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 whitespace-nowrap">
-              <i class="fa-solid fa-triangle-exclamation text-[10px]"></i>
-              <span>غير مؤكد</span>
-            </span>
-          `}
+          ${verificationBadge}
         </td>
       </tr>
     `;
@@ -2407,15 +2540,25 @@ function renderGeneratedLeadsTable(leads) {
 
 function filterGeneratedLeadsTable() {
   const input = document.getElementById('leads-filter-input');
+  const mobileOnly = document.getElementById('leads-filter-mobile-only')?.checked;
   const query = (input?.value || '').trim().toLowerCase();
-  if (!query) {
-    renderGeneratedLeadsTable(generatedLeads);
-    return;
+
+  let filtered = generatedLeads || [];
+
+  if (mobileOnly) {
+    filtered = filtered.filter(lead => {
+      const clean = (lead.phone || '').replace(/\D/g, '');
+      return lead.phoneType === 'mobile' || /^201[0125]\d{8}$/.test(clean);
+    });
   }
-  const filtered = generatedLeads.filter(lead => {
-    const text = `${lead.name || ''} ${lead.contactPerson || ''} ${lead.governorate || ''} ${lead.city || ''} ${lead.category || ''} ${lead.phone || ''} ${lead.suggestedPackaging || ''}`.toLowerCase();
-    return text.includes(query);
-  });
+
+  if (query) {
+    filtered = filtered.filter(lead => {
+      const text = `${lead.company || ''} ${lead.name || ''} ${lead.contactPerson || ''} ${lead.governorate || ''} ${lead.city || ''} ${lead.category || ''} ${lead.phone || ''} ${lead.website || ''} ${lead.sourceUrl || ''} ${lead.sourceTitle || ''} ${lead.suggestedPackaging || ''} ${lead.evidence || ''}`.toLowerCase();
+      return text.includes(query);
+    });
+  }
+
   renderGeneratedLeadsTable(filtered);
 }
 

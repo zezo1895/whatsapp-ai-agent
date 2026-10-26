@@ -3,6 +3,7 @@ const fs = require('fs');
 const xlsx = require('xlsx');
 const storage = require('./storage');
 const aiService = require('./ai');
+const firecrawl = require('./firecrawl');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Pool of Verified Real Egyptian WhatsApp Numbers across Governorates
@@ -75,8 +76,286 @@ class LeadFinderService {
     return false;
   }
 
+  // ── Normalize Egyptian phone numbers & detect phone type ──
+  normalizePhone(rawPhone) {
+    if (!rawPhone || typeof rawPhone !== 'string') return null;
+
+    // Convert Eastern Arabic numerals (٠١٢٣٤٥٦٧٨٩) to Latin (0-9)
+    const easternDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    let clean = rawPhone.replace(/[٠-٩]/g, d => easternDigits.indexOf(d));
+
+    // Strip non-digits
+    clean = clean.replace(/\D/g, '');
+    if (!clean || clean.length < 7) return null;
+
+    // Remove leading zeros or double zeros (0020... -> 20...)
+    if (clean.startsWith('0020')) {
+      clean = clean.slice(2);
+    }
+
+    // Egyptian mobile normalization:
+    // If 11 digits starting with 01 (e.g. 010..., 011..., 012..., 015...) -> prefix 2
+    if (clean.length === 11 && clean.startsWith('01')) {
+      clean = '2' + clean;
+    } else if (clean.length === 10 && clean.startsWith('1')) {
+      clean = '20' + clean;
+    }
+
+    // Egyptian Landline normalization:
+    // 02 (Cairo/Giza, 10 digits) -> 202... (11 digits)
+    if (clean.length === 10 && clean.startsWith('02')) {
+      clean = '2' + clean;
+    } else if (clean.length === 10 && clean.startsWith('03')) {
+      clean = '2' + clean; // Alexandria
+    } else if (clean.length === 10 && clean.startsWith('055')) {
+      clean = '2' + clean; // Sharqia / 10th of Ramadan
+    }
+
+    const isMobile = /^201[0125]\d{8}$/.test(clean);
+    const isLandline = /^20(2\d{8}|3\d{7}|40\d{7}|45\d{7}|47\d{7}|48\d{7}|50\d{7}|55\d{7}|57\d{7}|62\d{7}|64\d{7}|65\d{7}|66\d{7}|68\d{7}|69\d{7}|82\d{7}|84\d{7}|86\d{7}|88\d{7}|92\d{7}|93\d{7}|95\d{7}|96\d{7}|97\d{7})$/.test(clean);
+
+    return {
+      cleanPhone: clean,
+      isMobile,
+      isLandline,
+      type: isMobile ? 'mobile' : (isLandline ? 'landline' : 'unknown')
+    };
+  }
+
+  suggestPackagingForCategory(cat) {
+    if (!cat) return 'أكواب ورقية، علب كرتون كرافت، سلطانيات PP حرارية';
+    const norm = (cat || '').toLowerCase();
+    if (norm.includes('كافيه') || norm.includes('مشروب') || norm.includes('قهو')) {
+      return 'أكواب ورقية دبل وول 8/12/16 أونص، أكواب PET عصير، أغطية فلات ودوم، شاليموه';
+    }
+    if (norm.includes('سوشي') || norm.includes('سمك') || norm.includes('اسماك') || norm.includes('بحري')) {
+      return 'أطباق سوشي كريستال سوداء، سلطانيات صوص بغطاء محكم، علب ميكرويف PP، رول استرتش';
+    }
+    if (norm.includes('برجر') || norm.includes('وجبات') || norm.includes('تيك اواي') || norm.includes('شاورما')) {
+      return 'علب كرتون كرافت ريزو، لانش بوكس فوم، سلطانيات طحينة وصوص، رول استرتش';
+    }
+    if (norm.includes('حلوي') || norm.includes('مخبز') || norm.includes('تورت') || norm.includes('ايس كريم')) {
+      return 'علب تورت كرتون، سلطانيات حلويات وترايفل، قواعد ذهبية، علب بسبوسة وسابليه';
+    }
+    if (norm.includes('شرقي') || norm.includes('مشويات') || norm.includes('كباب') || norm.includes('مندي')) {
+      return 'علب مشويات كرافت، أطباق فوم مقسمة، فويل وسرافيس ألومنيوم حرارية، سلطانيات شوربة';
+    }
+    if (norm.includes('مصنع') || norm.includes('تعبئ') || norm.includes('غذائي') || norm.includes('شرك')) {
+      return 'رولات استرتش صناعي 50 سم، كرتون شحن وتصدير، رولات استرتش غذائي PE/PVC، شرينك';
+    }
+    return 'أكواب ورقية دبل، علب كرتون كرافت، سلطانيات صوص PP، رولات استرتش';
+  }
+
+  // ── Web Lead Search & Scraping with Firecrawl & Gemini ──
+  async findLeadsViaWebSearch({
+    category = 'all',
+    governorates = [],
+    city = '',
+    keywords = '',
+    count = 10,
+    maxScrapes = 4,
+    verifyWhatsApp = false,
+    allowDuplicates = false
+  }) {
+    if (!firecrawl.isConfigured()) {
+      throw new Error('مفتاح Firecrawl API غير مهيأ في الخادم (FIRECRAWL_API_KEY). يرجى إضافته في ملف .env في الخادم.');
+    }
+
+    const targetGov = (Array.isArray(governorates) && governorates.length > 0 && governorates[0] !== 'all')
+      ? governorates.join(' ')
+      : '';
+    const locText = [city, targetGov].filter(Boolean).join(' ') || 'مصر';
+    
+    // Clean category string (strip parentheses packaging details for cleaner web search)
+    let cleanCat = (category && category !== 'all' && category !== 'الكل') ? category : 'مطاعم وكافيهات ومصانع وشركات';
+    cleanCat = cleanCat.replace(/\(.*?\)/g, '').trim();
+    if (!cleanCat) cleanCat = 'مطاعم وكافيهات ومصانع';
+
+    // Construct high-intent B2B search query
+    const queryParts = [cleanCat, locText];
+    if (keywords && keywords.trim()) {
+      queryParts.push(keywords.trim());
+    } else {
+      queryParts.push('رقم تليفون عنوان التواصل');
+    }
+    const searchQuery = queryParts.join(' ');
+
+    console.log(`[Firecrawl Lead Search] Starting search: "${searchQuery}" (requested=${count}, maxScrapes=${maxScrapes})`);
+
+    // 1. Search API (with markdown scrapeOptions enabled)
+    const searchResults = await firecrawl.search(searchQuery, { 
+      limit: Math.min(Math.max(count, 3), 10),
+      scrapeOptions: { formats: ['markdown'] }
+    });
+    if (!searchResults || searchResults.length === 0) {
+      return {
+        success: true,
+        count: 0,
+        requestedCount: count,
+        duplicatesFiltered: 0,
+        leads: [],
+        source: 'البحث والتنقيب عبر الويب (Firecrawl)',
+        message: 'لم يتم العثور على نتائج تطابق معايير البحث'
+      };
+    }
+
+    const discoveredLeads = [];
+    const seenPhonesInBatch = new Set();
+    const existingContacts = storage.getContacts();
+    const archiveContacts = storage.getArchiveContacts();
+    let duplicatesFiltered = 0;
+
+    const isExistingPhone = (cleanPhone) => {
+      if (storage.isBlacklisted(cleanPhone)) return true;
+      if (existingContacts.some(c => {
+        const cp = (c.phone || '').replace(/\D/g, '');
+        return cp === cleanPhone || cp.endsWith(cleanPhone) || cleanPhone.endsWith(cp);
+      })) return true;
+      if (archiveContacts.some(c => {
+        const cp = (c.phone || '').replace(/\D/g, '');
+        return cp === cleanPhone || cp.endsWith(cleanPhone) || cleanPhone.endsWith(cp);
+      })) return true;
+      return false;
+    };
+
+    // 2. Process results (using pre-scraped markdown or selective scrape fallback)
+    const scrapeLimit = Math.min(searchResults.length, Math.max(parseInt(maxScrapes, 10) || 4, 1));
+    const urlsToProcess = searchResults.slice(0, Math.max(scrapeLimit, count));
+
+    for (const item of urlsToProcess) {
+      if (discoveredLeads.length >= count) break;
+
+      try {
+        let markdown = item.markdown;
+        if (!markdown) {
+          try {
+            const scrapeRes = await firecrawl.scrape(item.url);
+            if (scrapeRes && scrapeRes.markdown) {
+              markdown = scrapeRes.markdown;
+            }
+          } catch (scrapeErr) {
+            console.warn(`[Firecrawl Lead Search] Scrape fallback error for ${item.url}:`, scrapeErr.message);
+          }
+        }
+
+        // Fallback to title + description if page scrape failed (e.g., social media 403)
+        if (!markdown && item.description && item.description.length >= 15) {
+          markdown = `# ${item.title || 'بيانات الاتصال'}\n${item.description}\nرابط المصدر: ${item.url}`;
+        }
+
+        if (!markdown) continue;
+
+        // 3. Gemini Extraction
+        const extracted = await aiService.extractLeadsFromWebContent({
+          markdown: markdown,
+          sourceUrl: item.url,
+          sourceTitle: item.title,
+          targetCategory: category,
+          targetGov: targetGov
+        });
+
+        for (const ext of extracted) {
+          if (!ext || !ext.businessName || !Array.isArray(ext.phoneNumbers)) continue;
+
+          // Find primary valid phone
+          let primaryClean = null;
+          let primaryType = 'unknown';
+
+          for (const rawP of ext.phoneNumbers) {
+            const norm = this.normalizePhone(rawP);
+            if (!norm) continue;
+
+            if (norm.isMobile) {
+              primaryClean = norm.cleanPhone;
+              primaryType = 'mobile';
+              break; // Prefer Egyptian mobile
+            } else if (!primaryClean) {
+              primaryClean = norm.cleanPhone;
+              primaryType = norm.type;
+            }
+          }
+
+          if (!primaryClean) continue;
+
+          if (seenPhonesInBatch.has(primaryClean)) {
+            continue;
+          }
+
+          if (!allowDuplicates && isExistingPhone(primaryClean)) {
+            duplicatesFiltered++;
+            continue;
+          }
+
+          seenPhonesInBatch.add(primaryClean);
+
+          // WhatsApp verification if requested and Baileys is active
+          let isWhatsAppVerified = false;
+          if (verifyWhatsApp && primaryType === 'mobile' && this.whatsappService) {
+            try {
+              // Delay 4-7s to protect Baileys socket from rate limits
+              await new Promise(r => setTimeout(r, Math.floor(Math.random() * 3000) + 4000));
+              isWhatsAppVerified = await this.checkOnWhatsAppSafe(primaryClean);
+            } catch (e) {
+              isWhatsAppVerified = false;
+            }
+          }
+
+          const leadItem = {
+            id: `lead_web_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+            company: ext.businessName.trim(),
+            businessName: ext.businessName.trim(),
+            name: 'يا فندم',
+            phone: primaryClean,
+            phoneNumbers: ext.phoneNumbers,
+            phoneType: primaryType,
+            address: ext.address || '',
+            city: ext.city || city || '',
+            governorate: ext.governorate || targetGov || 'مصر',
+            category: ext.category || (category !== 'all' ? category : 'أنشطة تجارية'),
+            suggestedPackaging: this.suggestPackagingForCategory(ext.category || category),
+            website: ext.website || item.url,
+            sourceUrl: item.url,
+            sourceTitle: item.title,
+            evidence: ext.evidence || '',
+            verificationStatus: isWhatsAppVerified ? 'whatsapp_verified' : 'unverified',
+            whatsappVerified: isWhatsAppVerified,
+            status: isWhatsAppVerified
+              ? 'مؤكد ومفعل على واتساب 100%'
+              : (primaryType === 'mobile' ? 'مستخرج من الويب (موبايل مصري)' : 'مستخرج من الويب (هاتف أرضي)'),
+            source: 'البحث والتنقيب عبر الويب (Firecrawl)',
+            lastCollectedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString()
+          };
+
+          discoveredLeads.push(leadItem);
+          if (discoveredLeads.length >= count) break;
+        }
+      } catch (err) {
+        console.warn(`[Firecrawl Lead Search] Error processing ${item.url}:`, err.message);
+      }
+    }
+
+    console.log(`[Firecrawl Lead Search] Finished. Found ${discoveredLeads.length} leads (requested: ${count}, duplicates filtered: ${duplicatesFiltered}).`);
+    this.leadsCache = discoveredLeads;
+
+    return {
+      success: true,
+      count: discoveredLeads.length,
+      requestedCount: count,
+      duplicatesFiltered,
+      leads: discoveredLeads,
+      source: 'البحث والتنقيب عبر الويب (Firecrawl)'
+    };
+  }
+
   // Main Lead Finding & AI Mining Endpoint
-  async findLeads({ governorates = [], category = 'all', count = 25, isRandom = false, allowDuplicates = false }) {
+  async findLeads(params = {}) {
+    const { source = 'map_osm', mode = '' } = params;
+    if (source === 'web_search' || mode === 'web') {
+      return this.findLeadsViaWebSearch(params);
+    }
+
+    const { governorates = [], category = 'all', count = 25, isRandom = false, allowDuplicates = false } = params;
     const targetGovs = Array.isArray(governorates) ? governorates.map(g => g.trim()) : [];
     const hasGovFilter = !isRandom && targetGovs.length > 0 && !targetGovs.includes('all') && !targetGovs.includes('الكل');
 
@@ -240,14 +519,16 @@ class LeadFinderService {
   exportLeadsToExcel(leads) {
     const rows = leads.map((l, idx) => ({
       'م': idx + 1,
-      'اسم المنشأة / المكان': l.company || '',
+      'اسم المنشأة / المكان': l.company || l.businessName || '',
       'صفة المخاطبة': 'يا فندم',
-      'رقم الواتساب': l.phone || '',
+      'رقم الهاتف': l.phone || '',
+      'نوع الهاتف': l.phoneType === 'mobile' ? 'موبايل محمول' : (l.phoneType === 'landline' ? 'هاتف أرضي' : 'غير محدد'),
       'المحافظة': l.governorate || '',
-      'المدينة / العنوان': l.city || '',
+      'المدينة / العنوان': l.city || l.address || '',
       'نوع النشاط': l.category || '',
       'المنتجات والعبوات المقترحة': l.suggestedPackaging || '',
-      'حالة الواتساب': l.status || 'مؤكد ومفعل على واتساب 100%'
+      'رابط الموقع / المصدر': l.website || l.sourceUrl || '',
+      'حالة الواتساب': l.status || (l.whatsappVerified ? 'مؤكد ومفعل على واتساب 100%' : 'مستخرج من الويب (غير مؤكد)')
     }));
 
     const ws = xlsx.utils.json_to_sheet(rows);
@@ -280,12 +561,14 @@ class LeadFinderService {
       existingContacts.push({
         id: `c_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
         name: 'يا فندم',
-        company: lead.company || lead.name || 'منشأة مسجلة',
+        company: lead.company || lead.businessName || lead.name || 'منشأة مسجلة',
         phone: cleanPhone,
         city: lead.city || lead.governorate || '',
         governorate: lead.governorate || '',
         activity: lead.category || '',
-        notes: `النشاط: ${lead.category || ''} | المحافظة: ${lead.governorate || ''} | المقترح: ${lead.suggestedPackaging || ''}`,
+        website: lead.website || lead.sourceUrl || '',
+        sourceUrl: lead.sourceUrl || '',
+        notes: `النشاط: ${lead.category || ''} | المحافظة: ${lead.governorate || ''} | المقترح: ${lead.suggestedPackaging || ''}${lead.sourceUrl ? ` | المصدر: ${lead.sourceUrl}` : ''}`,
         status: 'pending',
         sent: false,
         replied: false,

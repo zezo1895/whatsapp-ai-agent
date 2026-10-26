@@ -11,6 +11,7 @@ const KNOWLEDGE_FILE = path.join(DATA_DIR, 'knowledge.json');
 const CONTACTS_FILE = path.join(DATA_DIR, 'contacts.json');
 const CHATS_FILE = path.join(DATA_DIR, 'chats.json');
 const ARCHIVE_FILE = path.join(DATA_DIR, 'archive_contacts.json');
+const BLACKLIST_FILE = path.join(DATA_DIR, 'optout_blacklist.json');
 
 const defaultSettings = {
   provider: 'gemini',
@@ -94,7 +95,67 @@ class Storage {
     this.contacts = readJson(CONTACTS_FILE, []);
     this.chats = readJson(CHATS_FILE, {});
     this.archiveContacts = readJson(ARCHIVE_FILE, []);
+    this.blacklist = readJson(BLACKLIST_FILE, []);
     this.archivePastDaysContacts();
+  }
+
+  getBlacklist() {
+    return this.blacklist || [];
+  }
+
+  saveBlacklist(list) {
+    this.blacklist = list || [];
+    writeJson(BLACKLIST_FILE, this.blacklist);
+  }
+
+  isBlacklisted(phone) {
+    if (!phone) return false;
+    let clean = phone.toString().replace(/\D/g, '');
+    if (clean.startsWith('01') && clean.length === 11) clean = '2' + clean;
+    return (this.blacklist || []).some(b => {
+      const bp = (b.phone || '').toString().replace(/\D/g, '');
+      return bp === clean || bp.endsWith(clean) || clean.endsWith(bp);
+    });
+  }
+
+  addToBlacklist(phone, reason = 'customer_optout') {
+    if (!phone) return;
+    let clean = phone.toString().replace(/\D/g, '');
+    if (clean.startsWith('01') && clean.length === 11) clean = '2' + clean;
+    
+    if (!this.blacklist) this.blacklist = [];
+    const exists = this.blacklist.find(b => {
+      const bp = (b.phone || '').toString().replace(/\D/g, '');
+      return bp === clean;
+    });
+
+    if (!exists) {
+      this.blacklist.push({
+        phone: clean,
+        reason: reason || 'customer_optout',
+        addedAt: new Date().toISOString()
+      });
+      writeJson(BLACKLIST_FILE, this.blacklist);
+      console.log(`[Storage] Permanently blacklisted ${clean} (Reason: ${reason})`);
+    }
+
+    // Immediately update in contacts if present
+    let updatedContacts = false;
+    (this.contacts || []).forEach(c => {
+      const cp = (c.phone || '').toString().replace(/\D/g, '');
+      if (cp === clean || cp.endsWith(clean) || clean.endsWith(cp)) {
+        c.status = 'optout';
+        c.autoReply = false;
+        c.optedOut = true;
+        c.optoutReason = reason;
+        c.optoutAt = new Date().toISOString();
+        updatedContacts = true;
+      }
+    });
+
+    if (updatedContacts) {
+      this.saveContacts(this.contacts);
+    }
   }
 
   getArchiveContacts() {

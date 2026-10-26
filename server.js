@@ -13,6 +13,7 @@ const ai = require('./src/ai');
 const whatsappService = require('./src/whatsapp');
 const campaignManager = require('./src/campaign');
 const leadFinder = require('./src/leadFinder');
+const firecrawl = require('./src/firecrawl');
 
 const app = express();
 const server = http.createServer(app);
@@ -800,16 +801,51 @@ app.get('/api/contacts/export-excel', (req, res) => {
 
 // ---------------- AI LEAD FINDER & RE-ENGAGEMENT ROUTES ----------------
 
-// 1. Search & Generate Leads with Deduplication
+// Firecrawl status check (safe, does not reveal secret key)
+app.get('/api/leads/firecrawl-status', (req, res) => {
+  res.json({
+    success: true,
+    configured: firecrawl.isConfigured(),
+    stats: firecrawl.getStats()
+  });
+});
+
+// Dedicated Firecrawl Web Discovery & Extraction endpoint
+app.post('/api/leads/firecrawl-search', async (req, res) => {
+  try {
+    const { category, governorates, city, keywords, count, maxScrapes, verifyWhatsApp, allowDuplicates } = req.body || {};
+    const result = await leadFinder.findLeadsViaWebSearch({
+      category: category || 'all',
+      governorates: governorates || [],
+      city: city || '',
+      keywords: keywords || '',
+      count: parseInt(count, 10) || 10,
+      maxScrapes: parseInt(maxScrapes, 10) || 4,
+      verifyWhatsApp: Boolean(verifyWhatsApp),
+      allowDuplicates: Boolean(allowDuplicates)
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 1. Search & Generate Leads with Deduplication (supports map_osm & web_search)
 app.post('/api/leads/find', async (req, res) => {
   try {
-    const { governorates, category, count, isRandom, allowDuplicates } = req.body || {};
+    const { governorates, category, count, isRandom, allowDuplicates, source, mode, keywords, city, maxScrapes, verifyWhatsApp } = req.body || {};
     const result = await leadFinder.findLeads({
       governorates: governorates || [],
       category: category || 'all',
       count: parseInt(count, 10) || 50,
       isRandom: Boolean(isRandom),
-      allowDuplicates: Boolean(allowDuplicates)
+      allowDuplicates: Boolean(allowDuplicates),
+      source: source || 'map_osm',
+      mode: mode || '',
+      keywords: keywords || '',
+      city: city || '',
+      maxScrapes: parseInt(maxScrapes, 10) || 4,
+      verifyWhatsApp: Boolean(verifyWhatsApp)
     });
     res.json(result);
   } catch (err) {

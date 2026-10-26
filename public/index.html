@@ -944,12 +944,28 @@
 
       <!-- Lead Extraction Parameters Box -->
       <div class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-5 flex flex-col gap-4">
-        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-sliders text-amber-400"></i>
-            <span>معايير البحث والتنقيب</span>
-          </h3>
-          <span class="text-xs text-slate-400">حدد نوع النشاط والمحافظات والعدد المطلوب</span>
+        
+        <!-- Source Selector Bar -->
+        <div class="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-700/60">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-bold text-slate-300">مصدر البحث:</span>
+            <button type="button" id="btn-source-firecrawl" onclick="setLeadSource('web_search')"
+              class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-2 transition-all">
+              <i class="fa-solid fa-globe"></i>
+              <span>بحث الويب ومواقع الشركات (Firecrawl AI)</span>
+              <span class="bg-amber-400 text-slate-950 text-[10px] px-1.5 py-0.2 rounded font-black">جديد 🔥</span>
+            </button>
+            <button type="button" id="btn-source-osm" onclick="setLeadSource('map_osm')"
+              class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 border border-slate-700 hover:text-white flex items-center gap-2 transition-all">
+              <i class="fa-solid fa-map-location-dot"></i>
+              <span>خرائط OpenStreetMap</span>
+            </button>
+          </div>
+
+          <div id="firecrawl-status-badge" class="flex items-center gap-2 text-[11px] bg-slate-900/80 border border-slate-700/80 px-3 py-1 rounded-full">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" id="fc-status-dot"></span>
+            <span class="text-slate-300 font-semibold" id="fc-status-text">Firecrawl: جاهز ⚡</span>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -965,7 +981,7 @@
               <option value="وجبات سريعة">مطاعم برجر وتيك أواي (علب كرتون كرافت، ريزو، استرتش)</option>
               <option value="حلويات">حلويات ومخابز ومثلجات (علب تورت، سلطانيات حلويات)</option>
               <option value="شرقي">مطاعم شرقي ومشويات (أطباق فوم، لانش بوكس، ألومنيوم)</option>
-              <option value="مصانع">مصانع مواد غذائية وتعبئة (استرتش صناعي، كرتون شحن)</option>
+              <option value="مصانع مواد غذائية">مصانع مواد غذائية وتعبئة (استرتش صناعي، كرتون شحن)</option>
             </select>
           </div>
 
@@ -975,15 +991,24 @@
               عدد العملاء المطلوب استخراجهم
             </label>
             <select id="leads-count" class="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none font-bold">
-              <option value="10">10 أماكن (تجربة سريعة)</option>
+              <option value="5">5 أماكن (سريع وموفر للرصيد)</option>
+              <option value="10" selected>10 أماكن (الموصى به للويب)</option>
               <option value="25">25 مكاناً</option>
-              <option value="50" selected>50 مكاناً (الموصى به للحملات)</option>
-              <option value="100">100 مكان</option>
+              <option value="50">50 مكاناً</option>
             </select>
           </div>
 
-          <!-- Quick Gov Mode -->
-          <div>
+          <!-- Web Search: City / Location Input OR Map Gov Mode -->
+          <div id="web-location-box">
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">
+              المدينة أو المنطقة المستهدفة بمصر
+            </label>
+            <input type="text" id="leads-city-input" placeholder="مثال: العاشر من رمضان، أو السادس من أكتوبر..." value="العاشر من رمضان"
+              class="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+          </div>
+
+          <!-- Map Geo Mode (Only in OSM mode) -->
+          <div id="map-geo-box" class="hidden">
             <label class="block text-xs font-bold text-slate-300 mb-1.5">
               طريقة التوزيع الجغرافي
             </label>
@@ -994,13 +1019,42 @@
               </button>
               <button type="button" id="btn-gov-custom" onclick="setGovMode('custom')" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 border border-slate-700 hover:text-white flex items-center justify-center gap-1.5 transition-all">
                 <i class="fa-solid fa-map-pin"></i>
-                <span>تحديد محافظات بعينها</span>
+                <span>تحديد محافظات</span>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Governorates Picker (Visible in Custom mode) -->
+        <!-- Optional Web Search Advanced Parameters -->
+        <div id="web-advanced-box" class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-700/60">
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">
+              كلمات بحث إضافية (اختياري)
+            </label>
+            <input type="text" id="leads-keywords-input" placeholder="مثال: مبيعات، توريدات، مصنع..."
+              class="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">
+              الحد الأقصى للمواقع المقروءة (توفير الرصيد)
+            </label>
+            <select id="leads-max-scrapes" class="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none">
+              <option value="2">2 صفحات (توفير فائق للرصيد)</option>
+              <option value="4" selected>4 صفحات (متوازن وموصى به)</option>
+              <option value="6">6 صفحات (تغطية أوسع)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2 pt-5">
+            <input type="checkbox" id="leads-verify-wa" class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-0">
+            <label for="leads-verify-wa" class="text-xs text-slate-300 cursor-pointer font-semibold">
+              فحص وجود واتساب آلياً (Baileys)
+            </label>
+          </div>
+        </div>
+
+        <!-- Governorates Picker (Visible in OSM Custom mode) -->
         <div id="custom-govs-container" class="hidden flex flex-col gap-2 pt-2 border-t border-slate-700/60">
           <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
             <span class="text-slate-300 font-bold">اختر المحافظات المطلوبة:</span>
@@ -1019,20 +1073,23 @@
         <div class="pt-2 flex items-center justify-between flex-wrap gap-3">
           <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
             <i class="fa-solid fa-circle-check text-emerald-400"></i>
-            <span>السيستم يستبعد أوتوماتيكياً أي رقم تم التواصل معه من قبل لضمان جودة الحملة الباردة.</span>
+            <span>السيستم يستبعد أوتوماتيكياً أي رقم مكرر في قاعدة البيانات أو قائمة الحظر.</span>
           </div>
 
           <button type="button" id="btn-start-lead-search" onclick="startAILeadSearch()"
             class="px-6 py-2.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-300 transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20">
             <i class="fa-solid fa-wand-magic-sparkles"></i>
-            <span>بدء جمع البيانات بالذكاء الاصطناعي 🚀</span>
+            <span>بدء استخراج العملاء بالذكاء الاصطناعي 🚀</span>
           </button>
         </div>
 
         <!-- Progress / Loader -->
         <div id="leads-search-loader" class="hidden py-8 flex flex-col items-center justify-center gap-3 text-slate-300 bg-slate-950/60 rounded-xl border border-slate-800">
           <i class="fa-solid fa-circle-notch fa-spin text-3xl text-amber-400"></i>
-          <div class="text-xs font-bold text-white" id="leads-loader-status">جاري التنقيب عن المطاعم والشركات واستخراج أرقام الواتساب...</div>
+          <div class="text-xs font-bold text-white" id="leads-loader-status">جاري البحث في الويب وقراءة صفحات الاتصال واستخراج البيانات...</div>
+          <div class="text-[11px] text-slate-400">يتم فحص وتصفية الأرقام والتأكد من مطابقة أرقام الهواتف والمصدر الحقيقي 🛡️</div>
+        </div>
+      </div>
           <div class="text-[11px] text-slate-400">يتم فحص وتصفية الأرقام للتأكد من عدم تكرار أي رقم تم التواصل معه من قبل 🛡️</div>
         </div>
       </div>
@@ -1072,13 +1129,17 @@
         </div>
 
         <!-- Filter within extracted leads -->
-        <div class="flex items-center justify-between gap-2 flex-wrap">
-          <div class="text-xs text-slate-400">
-            يمكنك تصفح القائمة أو تنزيلها أو إدراجها فوراً في شيت الحملة:
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-slate-400">تصفية النتائج المستخرجة:</span>
+            <label class="inline-flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer bg-slate-900 border border-slate-700 px-2.5 py-1 rounded-lg hover:border-amber-500 transition-colors">
+              <input type="checkbox" id="leads-filter-mobile-only" onchange="filterGeneratedLeadsTable()" class="rounded bg-slate-950 border-slate-700 text-amber-500 focus:ring-0">
+              <span>أرقام موبايل فقط 📱</span>
+            </label>
           </div>
           <div class="relative w-full sm:w-64">
             <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
-            <input type="text" id="leads-filter-input" oninput="filterGeneratedLeadsTable()" placeholder="تصفية بالاسم أو المحافظة..."
+            <input type="text" id="leads-filter-input" oninput="filterGeneratedLeadsTable()" placeholder="تصفية بالاسم أو المحافظة أو المصدر..."
               class="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-xl pr-9 pl-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none">
           </div>
         </div>
@@ -1089,19 +1150,24 @@
             <thead class="bg-slate-900/90 text-slate-400 font-semibold border-b border-slate-700/60">
               <tr>
                 <th class="p-3 w-10 text-center">م</th>
-                <th class="p-3">اسم المنشأة / المكان</th>
-                <th class="p-3">المسؤول</th>
+                <th class="p-3">اسم المنشأة والعنوان</th>
                 <th class="p-3">المحافظة والمدينة</th>
                 <th class="p-3">نوع النشاط</th>
-                <th class="p-3">رقم الواتساب</th>
+                <th class="p-3">الهاتف والنوع</th>
+                <th class="p-3">الموقع والمصدر</th>
                 <th class="p-3">العبوات المقترحة</th>
-                <th class="p-3 text-center">حالة الرقم</th>
+                <th class="p-3 text-center">حالة التحقق</th>
               </tr>
             </thead>
             <tbody id="leads-table-body" class="divide-y divide-slate-800 bg-slate-900/40">
               <!-- Rendered via JS -->
             </tbody>
           </table>
+        </div>
+
+        <div id="leads-attribution-footer" class="text-[11px] text-slate-400 flex items-center justify-between pt-1">
+          <span id="leads-attribution-text">بيانات مستخرجة ومحققة بالذكاء الاصطناعي بواسطة Firecrawl & Gemini AI</span>
+          <span class="text-slate-500 font-mono text-[10px]">Zero Hallucination Policy Enforced 🛡️</span>
         </div>
       </div>
 
