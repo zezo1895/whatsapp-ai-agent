@@ -28,6 +28,8 @@ data/raw_catalog_user.csv
 
 # Temporary / scratch files
 scratch/
+dist/
+*.log
 *.log
 npm-debug.log*
 

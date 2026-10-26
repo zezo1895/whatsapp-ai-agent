@@ -7,7 +7,8 @@
     "start": "node server.js",
     "desktop": "electron .",
     "electron": "electron .",
-    "web": "node server.js"
+    "web": "node server.js",
+    "preview": "electron-builder --dir"
   },
   "keywords": [],
   "author": "",
@@ -27,17 +28,23 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "electron": "^45.0.0"
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0"
   },
   "build": {
     "appId": "com.hakimgroup.whatsappai",
-    "productName": "وكيل مبيعات واتساب الذكي",
+    "productName": "WhatsApp-AI-Sales-Agent",
+    "asar": false,
     "directories": {
       "output": "dist"
     },
     "win": {
-      "target": "nsis",
+      "target": "dir",
       "icon": "assets/app-icon.ico"
-    }
+    },
+    "files": [
+      "**/*",
+      "!dist"
+    ]
   }
 }
