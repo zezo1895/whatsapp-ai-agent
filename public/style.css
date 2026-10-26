@@ -1,0 +1,52 @@
+/* Custom styling & scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.8);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.6);
+}
+
+.tab-btn {
+  color: #94a3b8;
+  background-color: transparent;
+}
+.tab-btn:hover {
+  color: #f1f5f9;
+  background-color: rgba(30, 41, 59, 0.7);
+}
+.tab-btn.active {
+  color: #ffffff;
+  background-color: #1e293b;
+  border: 1px solid rgba(51, 65, 85, 0.8);
+}
+
+/* Chat bubble styling */
+.chat-bubble-user {
+  background-color: #1e293b;
+  color: #f1f5f9;
+  align-self: flex-start;
+  border-bottom-right-radius: 0.25rem;
+}
+
+.chat-bubble-me {
+  background-color: #065f46;
+  color: #ecfdf5;
+  align-self: flex-end;
+  border-bottom-left-radius: 0.25rem;
+}
+
+.chat-bubble-ai {
+  background-color: #3b0764;
+  color: #f5f3ff;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  align-self: flex-end;
+  border-bottom-left-radius: 0.25rem;
+}

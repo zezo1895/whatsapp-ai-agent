@@ -1,0 +1,16 @@
+{
+  "provider": "gemini",
+  "apiKey": "",
+  "model": "gemini-flash-lite-latest",
+  "minDelaySeconds": 60,
+  "maxDelaySeconds": 180,
+  "batchSize": 5,
+  "batchCooldownMinutes": 10,
+  "dailySafetyLimit": 25,
+  "warmupMode": false,
+  "useAIUniqueOutreach": true,
+  "initialMessageTemplate": "{greeting}\nمعاك مصانع حكيم جروب للتعبئة والتغليف بالعاشر من رمضان.",
+  "autoReplyEnabled": true,
+  "dailyMessageLimit": 25,
+  "catalogLink": "https://hakim-chi.vercel.app/products"
+}

@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp AI Sales & Outreach Agent | وكيل مبيعات واتساب الذكي</title>
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Cairo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-900 text-slate-100 font-['Cairo'] min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700/80 sticky top-0 z-50 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3 space-x-reverse">
+        <div class="w-11 h-11 bg-gradient-to-tr from-emerald-600 to-teal-400 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <i class="fa-brands fa-whatsapp text-2xl text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">
+            وكيل مبيعات واتساب الذكي (AI Outreach Agent)
+          </h1>
+          <p class="text-xs text-slate-400">حملات واتساب آلية ومحادثات ذكية مبنية على داتا شركتك</p>
+        </div>
+      </div>
+
+      <!-- Header Controls: Auto-Reply Toggle + WhatsApp Status -->
+      <div class="flex items-center space-x-3 space-x-reverse">
+        <button id="btn-toggle-autoreply" onclick="toggleGlobalAutoReply()" class="flex items-center space-x-2 space-x-reverse bg-slate-950/70 border border-slate-700 hover:border-slate-500 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer shadow-sm">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400" id="autoreply-dot"></span>
+          <span id="autoreply-text" class="text-slate-200">الرد التلقائي: شغال</span>
+        </button>
+
+        <div id="header-status-pill" class="flex items-center space-x-2 space-x-reverse bg-slate-950/60 border border-slate-700 px-3.5 py-1.5 rounded-full text-xs font-semibold">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" id="status-dot"></span>
+          <span id="status-text" class="text-slate-300">جاري فحص الاتصال...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto w-full flex-1 p-6 flex flex-col gap-6">
+
+    <!-- Unanswered Inquiries Alert Bar -->
+    <div id="unanswered-inquiries-bar" class="hidden bg-gradient-to-r from-amber-950/90 via-orange-950/85 to-amber-900/70 border-2 border-amber-500/70 rounded-2xl p-4 shadow-xl shadow-amber-950/40 flex flex-col md:flex-row items-center justify-between gap-3 transition-all">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 text-lg flex-shrink-0 animate-bounce">
+          <i class="fa-solid fa-bell"></i>
+        </div>
+        <div>
+          <div class="font-bold text-amber-200 text-sm flex items-center gap-2">
+            <span>⚠️ استفسار جديد بانتظار ردك اليدوي!</span>
+            <span id="unanswered-count-badge" class="bg-amber-500 text-slate-950 text-xs px-2 py-0.5 rounded-full font-black">1</span>
+          </div>
+          <div id="unanswered-preview-text" class="text-xs text-amber-300/90 mt-0.5 font-medium truncate max-w-xl">...</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openPendingInquiryChat()" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer transition-all">
+          <i class="fa-solid fa-reply"></i>
+          <span>رد بنفسي الآن</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center space-x-2 space-x-reverse border-b border-slate-800 pb-3 overflow-x-auto">
+      <button onclick="switchTab('tab-campaign')" id="btn-tab-campaign" class="tab-btn active px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap">
+        <i class="fa-solid fa-bullhorn text-emerald-400"></i>
+        <span>الحملة ورفع الإكسيل</span>
+      </button>
+
+      <button onclick="switchTab('tab-inbox')" id="btn-tab-inbox" class="tab-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap">
+        <i class="fa-solid fa-comments text-cyan-400"></i>
+        <span>المحادثات الحية</span>
+        <span id="inbox-badge" class="hidden bg-emerald-500 text-slate-950 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+      </button>
+
+      <button onclick="switchTab('tab-knowledge')" id="btn-tab-knowledge" class="tab-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap">
+        <i class="fa-solid fa-brain text-purple-400"></i>
+        <span>داتا الشركة والذكاء الاصطناعي</span>
+      </button>
+
+      <button onclick="switchTab('tab-branches')" id="btn-tab-branches" class="tab-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap">
+        <i class="fa-solid fa-map-location-dot text-rose-400"></i>
+        <span>المعارض واللوكيشن</span>
+        <span id="branches-badge" class="bg-rose-500/20 text-rose-300 text-xs px-2 py-0.5 rounded-full font-bold">4</span>
+      </button>
+
+      <button onclick="switchTab('tab-leads')" id="btn-tab-leads" class="tab-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap">
+        <i class="fa-solid fa-magnifying-glass-chart text-amber-400"></i>
+        <span>جمع البيانات والتنقيب (AI Leads)</span>
+        <span class="bg-amber-500/20 text-amber-300 text-xs px-2 py-0.5 rounded-full font-bold">جديد 🔥</span>
+      </button>
+
+      <button onclick="switchTab('tab-connection')" id="btn-tab-connection" class="tab-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap">
+        <i class="fa-solid fa-qrcode text-amber-400"></i>
+        <span>ربط الواتساب (QR)</span>
+      </button>
+    </div>
+
+    <!-- TAB 1: CAMPAIGN & EXCEL -->
+    <div id="tab-campaign" class="tab-content flex flex-col gap-6">
+      
+      <!-- Top Stats Row -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between">
+          <div>
+            <div class="text-xs text-slate-400 font-semibold mb-1">إجمالي الأرقام</div>
+            <div class="text-2xl font-black text-white" id="stat-total">0</div>
+          </div>
+          <div class="w-10 h-10 bg-slate-700/50 rounded-xl flex items-center justify-center text-slate-300">
+            <i class="fa-solid fa-users"></i>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between">
+          <div>
+            <div class="text-xs text-slate-400 font-semibold mb-1">تم الإرسال</div>
+            <div class="text-2xl font-black text-emerald-400" id="stat-sent">0</div>
+          </div>
+          <div class="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400">
+            <i class="fa-solid fa-paper-plane"></i>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between">
+          <div>
+            <div class="text-xs text-slate-400 font-semibold mb-1">ردوا على الرسالة 🔥</div>
+            <div class="text-2xl font-black text-cyan-400" id="stat-replied">0</div>
+          </div>
+          <div class="w-10 h-10 bg-cyan-500/10 border border-cyan-500/20 rounded-xl flex items-center justify-center text-cyan-400">
+            <i class="fa-solid fa-reply-all"></i>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between">
+          <div>
+            <div class="text-xs text-slate-400 font-semibold mb-1">قيد الانتظار</div>
+            <div class="text-2xl font-black text-amber-400" id="stat-pending">0</div>
+          </div>
+          <div class="w-10 h-10 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center text-amber-400">
+            <i class="fa-solid fa-hourglass-half"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Upload & Template -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Upload Box -->
+        <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 flex flex-col justify-between">
+          <div>
+            <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2">
+              <i class="fa-solid fa-file-excel text-emerald-400"></i>
+              <span>رفع شيت الإكسيل (Excel)</span>
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">
+              ارفع ملف <code class="text-emerald-300">.xlsx</code> أو <code class="text-emerald-300">.csv</code> يحتوي على أعمدة (الاسم، الشركة، رقم الواتساب).
+            </p>
+
+            <div id="dropzone" class="border-2 border-dashed border-slate-600 hover:border-emerald-500 rounded-xl p-6 text-center cursor-pointer transition-all bg-slate-900/40">
+              <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="hidden">
+              <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
+              <div class="text-sm font-bold text-slate-200">اضغط لاختيار الملف أو اسحبه هنا</div>
+              <div class="text-xs text-slate-500 mt-1">يدعم ملفات Excel و CSV</div>
+            </div>
+          </div>
+
+          <div class="mt-4 flex flex-col gap-2 pt-3 border-t border-slate-700/60">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <a href="/api/download/template-empty" class="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1.5" download>
+                <i class="fa-solid fa-file-excel"></i>
+                <span>تحميل قالب إكسيل فارغ</span>
+              </a>
+              <a href="/api/download/all-egypt-verified" class="text-xs text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1.5" download>
+                <i class="fa-solid fa-file-excel"></i>
+                <span>تحميل شيت محافظات مصر (29 رقم حقيقي مؤكد واتساب)</span>
+              </a>
+              <a href="/api/download/sample-ramadan-ismailia" class="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1.5" download>
+                <i class="fa-solid fa-download"></i>
+                <span>تحميل شيت العاشر والإسماعيلية</span>
+              </a>
+              <a href="/api/contacts/export-excel" class="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1.5" download>
+                <i class="fa-solid fa-file-export"></i>
+                <span>تصدير جميع جهات الاتصال المسجلة إكسيل</span>
+              </a>
+            </div>
+            <div class="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-slate-700/40">
+              <button onclick="loadAllEgyptVerifiedDirectly()" class="text-xs bg-sky-600/30 hover:bg-sky-600/50 text-sky-300 border border-sky-500/40 px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shadow-sm">
+                <i class="fa-solid fa-map-location-dot text-sky-400"></i>
+                <span>استيراد عملاء محافظات مصر الحقيقيين للحملة (29 رقم مؤكد واتساب)</span>
+              </button>
+              <button onclick="loadRamadanSampleDirectly()" class="text-xs bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all">
+                <i class="fa-solid fa-bolt"></i>
+                <span>استيراد بيانات العاشر والإسماعيلية</span>
+              </button>
+              <a href="/api/download/sushi-excel" class="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1.5" download>
+                <i class="fa-solid fa-fish text-xs"></i>
+                <span>شيت مطاعم السوشي</span>
+              </a>
+              <a href="/api/download/catalog-excel" class="text-xs text-teal-400 hover:text-teal-300 font-semibold flex items-center gap-1.5" download>
+                <i class="fa-solid fa-boxes-packing"></i>
+                <span>كتالوج التعبئة (1354 صنف)</span>
+              </a>
+              <button onclick="sanitizeAllContacts()" class="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1 cursor-pointer" title="حذف أرقام الاختبار القديمة واعتماد المخاطبة الرسمية (يا فندم) لكافة الأرقام">
+                <i class="fa-solid fa-broom"></i>
+                <span>تنظيف واعتماد «يا فندم»</span>
+              </button>
+              <button onclick="clearFailedContacts()" class="text-xs bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 cursor-pointer transition-all" title="حذف كافة الأرقام التي فشلت لعدم وجود واتساب">
+                <i class="fa-solid fa-user-slash"></i>
+                <span>حذف الأرقام غير المسجلة (الفاشلة)</span>
+              </button>
+              <button onclick="clearContacts()" class="text-xs text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 cursor-pointer">
+                <i class="fa-solid fa-trash"></i>
+                <span>مسح القائمة</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Initial Message Template & Safe Delay Settings -->
+        <div class="lg:col-span-2 bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-comment-dots text-teal-400"></i>
+                <span>صيغة الرسالة الافتتاحية الأولى</span>
+              </h3>
+              <div class="text-xs text-slate-400">
+                المتغيرات المتاحة: <code class="text-emerald-400">{name}</code> , <code class="text-emerald-400">{company}</code>
+              </div>
+            </div>
+
+            <textarea id="template-text" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 transition-all resize-none"></textarea>
+
+            <!-- Anti-Ban Protection Settings Panel -->
+            <div class="mt-4 p-4 rounded-xl bg-slate-950/80 border border-emerald-500/30 flex flex-col gap-3">
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center gap-2">
+                  <i class="fa-solid fa-shield-halved text-emerald-400 text-sm"></i>
+                  <span class="text-xs font-bold text-white">إعدادات درع الأمان ومكافحة حظر واتساب (Anti-Ban)</span>
+                  <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">مُفعّل لحماية الرقم 🛡️</span>
+                </div>
+                <button type="button" onclick="applyWarmupPreset()" id="btn-warmup-preset"
+                  class="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all">
+                  <i class="fa-solid fa-fire-flame-curved"></i>
+                  <span>تطبيق وضع الإحماء الفائق بعد فك الحظر</span>
+                </button>
+              </div>
+
+              <!-- AI Unique Message Toggle -->
+              <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-900 border border-slate-800">
+                <label class="flex items-center gap-2.5 cursor-pointer text-xs text-slate-200 font-semibold select-none">
+                  <input type="checkbox" id="use-ai-unique" checked class="w-4 h-4 accent-emerald-500 rounded">
+                  <span>توليد رسالة افتتاحية فريدة بالذكاء الاصطناعي 100% لكل عميل (يمنع تطابق النصوص تماماً) ✨</span>
+                </label>
+                <span class="text-[11px] text-emerald-400 font-mono">موصى به للغاية</span>
+              </div>
+
+              <!-- Delays & Cooldown Grid -->
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <label class="text-xs text-slate-400 block mb-1">الحد الأدنى للانتظار (ثوانٍ)</label>
+                  <input type="number" id="min-delay" min="45" max="300" value="60" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-center font-bold text-white">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-400 block mb-1">الحد الأقصى للانتظار (ثوانٍ)</label>
+                  <input type="number" id="max-delay" min="90" max="600" value="180" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-center font-bold text-white">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-400 block mb-1">حجم الدفعة (قبل الاستراحة)</label>
+                  <input type="number" id="batch-size" min="3" max="15" value="5" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-center font-bold text-white">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-400 block mb-1">مدة الاستراحة الذكية (دقائق)</label>
+                  <input type="number" id="batch-cooldown" min="5" max="30" value="10" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-center font-bold text-white">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 border-t border-slate-800/80">
+                <div class="flex items-center gap-2 text-xs">
+                  <label class="text-slate-400 shrink-0">الحد الأقصى اليومي الآمن:</label>
+                  <input type="number" id="daily-safety-limit" min="10" max="50" value="25" class="w-20 bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-center font-bold text-amber-300">
+                  <span class="text-[11px] text-slate-500">رسالة/يوم</span>
+                </div>
+                <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
+                  <i class="fa-solid fa-circle-info text-amber-400"></i>
+                  <span>الفواصل البشرية (1-3 دقائق) والاستراحة كل 5 رسائل تمنع رادار واتساب من اكتشاف الأتمتة.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Campaign Control Buttons -->
+          <div class="mt-4 pt-4 border-t border-slate-700/60 flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-2">
+              <button onclick="startCampaign()" id="btn-start-campaign" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all">
+                <i class="fa-solid fa-play"></i>
+                <span>بدء إرسال الحملة</span>
+              </button>
+
+              <button onclick="pauseCampaign()" id="btn-pause-campaign" class="hidden bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-sm flex items-center gap-2 transition-all">
+                <i class="fa-solid fa-pause"></i>
+                <span>إيقاف مؤقت</span>
+              </button>
+
+              <button onclick="resetCampaign()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold px-4 py-2.5 rounded-xl text-sm transition-all">
+                إعادة ضبط
+              </button>
+            </div>
+
+            <!-- Campaign Status Note -->
+            <div id="campaign-progress-note" class="text-xs font-semibold text-slate-400">
+              الحملة متوقفة حالياً.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dual Contacts & Archive Card -->
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden flex flex-col">
+        <!-- Dual Tabs Navigation Header -->
+        <div class="px-5 py-3.5 border-b border-slate-700 bg-slate-900/60 flex items-center justify-between flex-wrap gap-3">
+          <div class="flex items-center gap-2 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
+            <button id="btn-view-today" onclick="switchCampaignView('today')"
+              class="px-3.5 py-1.5 font-bold text-xs rounded-lg flex items-center gap-2 transition-all bg-emerald-600 text-white shadow-md cursor-pointer">
+              <i class="fa-solid fa-bullseye text-emerald-200"></i>
+              <span>حملة اليوم (تبدأ من رقم 1)</span>
+              <span id="today-contacts-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-black/30 text-emerald-200 font-black">0</span>
+            </button>
+            <button id="btn-view-archive" onclick="switchCampaignView('archive')"
+              class="px-3.5 py-1.5 font-bold text-xs rounded-lg flex items-center gap-2 transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 cursor-pointer">
+              <i class="fa-solid fa-folder-clock text-amber-400"></i>
+              <span>أرشيف وسجل الأيام السابقة</span>
+              <span id="archive-contacts-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-amber-300 font-black">0</span>
+            </button>
+          </div>
+
+          <!-- Actions per active view -->
+          <div id="today-view-actions" class="flex items-center gap-2">
+            <button onclick="openAddContactModal(false)" class="bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer">
+              <i class="fa-solid fa-user-plus"></i>
+              <span>+ إضافة رقم عميل يدوياً</span>
+            </button>
+            <div class="text-xs text-slate-400" id="contacts-count-label">0 عميل اليوم</div>
+          </div>
+
+          <div id="archive-view-actions" class="hidden flex items-center gap-2">
+            <a href="/api/contacts/archive/export-excel" download class="bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm">
+              <i class="fa-solid fa-file-excel"></i>
+              <span>تصدير الأرشيف إكسيل 📥</span>
+            </a>
+            <button onclick="runArchiveSeparation()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer" title="إعادة فحص ونقل أي أرقام من أيام سابقة إلى الأرشيف فوراً">
+              <i class="fa-solid fa-rotate"></i>
+              <span>تحديث وفصل الأيام السابقة</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. TODAY'S CAMPAIGN TABLE VIEW (STARTS FROM 1) -->
+        <div id="view-today-container" class="overflow-x-auto max-h-[420px] overflow-y-auto">
+          <table class="w-full text-sm text-right text-slate-300">
+            <thead class="bg-slate-900/80 text-xs text-slate-400 uppercase sticky top-0 border-b border-slate-800">
+              <tr>
+                <th class="px-4 py-3 text-center">#</th>
+                <th class="px-4 py-3">اسم المنشأة / المكان</th>
+                <th class="px-4 py-3">رقم الواتساب</th>
+                <th class="px-4 py-3">الحالة</th>
+                <th class="px-4 py-3">الرد الآلي AI</th>
+                <th class="px-4 py-3 text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="contacts-table-body" class="divide-y divide-slate-800">
+              <tr>
+                <td colspan="6" class="text-center py-10 text-slate-500">
+                  لا توجد جهات اتصال بحملة اليوم حالياً.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 2. PREVIOUS DAYS ARCHIVE TABLE VIEW -->
+        <div id="view-archive-container" class="hidden overflow-x-auto max-h-[420px] overflow-y-auto">
+          <div class="p-3 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-300 flex items-center gap-2">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>هذه الأرقام تم التواصل معها في أيام سابقة، وهي معزولة تماماً في خانة مستقلة حتى تبدأ أرقام حملة اليوم دائماً من رقم 1.</span>
+          </div>
+          <table class="w-full text-sm text-right text-slate-300">
+            <thead class="bg-slate-900/80 text-xs text-slate-400 uppercase sticky top-0 border-b border-slate-800">
+              <tr>
+                <th class="px-4 py-3">#</th>
+                <th class="px-4 py-3">اسم المنشأة / المكان</th>
+                <th class="px-4 py-3">رقم الواتساب</th>
+                <th class="px-4 py-3">تاريخ المراسلة</th>
+                <th class="px-4 py-3">آخر رسالة متبادلة</th>
+                <th class="px-4 py-3">الحالة</th>
+                <th class="px-4 py-3 text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="archive-table-body" class="divide-y divide-slate-800">
+              <tr>
+                <td colspan="7" class="text-center py-10 text-slate-500">
+                  لا توجد جهات اتصال مؤرشفة.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: LIVE INBOX -->
+    <div id="tab-inbox" class="tab-content hidden flex-1 min-h-[550px] bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-3">
+      
+      <!-- Left: Conversations List -->
+      <div class="border-l border-slate-700/80 flex flex-col bg-slate-900/40">
+        <div class="p-3 border-b border-slate-800 flex flex-col gap-2">
+          <div class="flex items-center gap-2">
+            <input type="text" id="search-chats" placeholder="بحث بالاسم أو الرقم..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+            <button onclick="promptNewChat()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-2 rounded-xl text-xs flex items-center justify-center transition-all" title="محادثة جديدة برقم هاتف">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+        </div>
+        <div id="chats-sidebar-list" class="flex-1 overflow-y-auto divide-y divide-slate-800/60">
+          <!-- Populated dynamically -->
+          <div class="p-6 text-center text-slate-500 text-xs">
+            لا توجد محادثات نشطة بعد.
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Active Chat View -->
+      <div class="md:col-span-2 flex flex-col bg-slate-900/70">
+        <!-- Chat Header -->
+        <div id="active-chat-header" class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-800/40">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg" id="chat-header-avatar">
+              ?
+            </div>
+            <div>
+              <div class="font-bold text-sm text-white" id="chat-header-name">اختر محادثة</div>
+              <div class="text-xs text-slate-400" id="chat-header-phone">---</div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2" id="chat-header-actions">
+            <!-- Dynamic toggles -->
+          </div>
+        </div>
+
+        <!-- Chat Messages Area -->
+        <div id="chat-messages-container" class="flex-1 p-4 overflow-y-auto flex flex-col gap-3 min-h-[350px]">
+          <div class="text-center text-slate-500 text-xs my-auto">
+            اختر محادثة من القائمة لعرض الرسائل وتفاصيل العميل.
+          </div>
+        </div>
+
+        <!-- Manual Message Input -->
+        <div class="p-3 border-t border-slate-800 bg-slate-800/50 flex items-center gap-2">
+          <input type="text" id="manual-msg-input" placeholder="اكتب رداً يدوياً هنا..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500" disabled>
+          <button onclick="sendManualMessage()" id="btn-send-manual" class="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-sm transition-all" disabled>
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: KNOWLEDGE BASE & AI SETTINGS -->
+    <div id="tab-knowledge" class="tab-content hidden flex flex-col gap-6">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left: AI Provider Settings -->
+        <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 flex flex-col gap-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-key text-amber-400"></i>
+            <span>إعدادات الذكاء الاصطناعي (API)</span>
+          </h3>
+
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">مزود الخدمة (Provider)</label>
+            <select id="ai-provider" onchange="onProviderChange()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-purple-500">
+              <option value="gemini">Google Gemini (الأسرع والأوفر)</option>
+              <option value="openai">OpenAI (GPT-4o / GPT-4o-mini)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">موديل الذكاء الاصطناعي (Model)</label>
+            <select id="ai-model" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-purple-500">
+              <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (موصى به - فائق السرعة)</option>
+              <option value="gemini-3.6-flash">gemini-3.6-flash (سريع ودقيق)</option>
+              <option value="gemini-3.8-flash">gemini-3.8-flash (الأحدث والأقوى)</option>
+              <option value="gpt-4o-mini">gpt-4o-mini</option>
+              <option value="gpt-4o">gpt-4o</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs text-slate-400">مفتاح الـ API (API Key)</label>
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-xs text-emerald-400 hover:underline">احصل على مفتاح Gemini مجاني</a>
+            </div>
+            <input type="password" id="ai-api-key" placeholder="AIzaSy... أو sk-..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-purple-500">
+            <div class="text-[11px] text-slate-500 mt-1">يُحفظ المفتاح محلياً على جهازك فقط. إذا تركته فارغاً سيعمل النظام في وضع الردود الذكية الافتراضية.</div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-700">
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" id="auto-reply-toggle" class="w-4 h-4 accent-emerald-500 rounded">
+              <span class="text-sm font-semibold text-slate-200">تفعيل الرد الآلي بالذكاء الاصطناعي لجميع العملاء</span>
+            </label>
+          </div>
+
+          <!-- Test Chat Box -->
+          <div class="mt-4 pt-4 border-t border-slate-700 bg-slate-900/60 p-4 rounded-xl border border-slate-700/60">
+            <div class="text-xs font-bold text-purple-400 mb-2 flex items-center gap-1.5">
+              <i class="fa-solid fa-vial"></i>
+              <span>تجربة رد الذكاء الاصطناعي الآن</span>
+            </div>
+            <div class="flex gap-2">
+              <input type="text" id="test-ai-input" placeholder="اكتب سؤالاً مثل: بتبيعوا إيه؟" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+              <button onclick="testAIReply()" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all">
+                جرب
+              </button>
+            </div>
+            <div id="test-ai-output" class="hidden mt-2 p-2.5 bg-slate-950/80 rounded-lg text-xs text-slate-300 border border-slate-800">
+              <!-- Result -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Knowledge Base Form -->
+        <div class="lg:col-span-2 bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-database text-purple-400"></i>
+              <span>داتا ومعلومات شركتك (Knowledge Base)</span>
+            </h3>
+            <button onclick="saveKnowledgeAndSettings()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-1.5 rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/20">
+              <i class="fa-solid fa-floppy-disk"></i>
+              <span>حفظ البيانات</span>
+            </button>
+          </div>
+
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">اسم الشركة أو المصنع</label>
+            <input type="text" id="kb-company-name" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-purple-500">
+          </div>
+
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">نبذة عن الشركة ومجال العمل</label>
+            <textarea id="kb-about" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-purple-500 resize-none"></textarea>
+          </div>
+
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">قائمة المنتجات والخدمات (التي يشرحها البوت للعملاء)</label>
+            <textarea id="kb-products" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-purple-500 resize-none"></textarea>
+          </div>
+
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">الأسئلة الشائعة وإجاباتها النموذجية (FAQs)</label>
+            <textarea id="kb-faqs" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-purple-500 resize-none"></textarea>
+          </div>
+
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">توجيهات أسلوب المحادثة (System Prompt)</label>
+            <textarea id="kb-prompt" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-purple-500 resize-none"></textarea>
+          </div>
+        </div>
+
+        <!-- Catalog Management Card (PDF & Link) -->
+        <div class="lg:col-span-3 bg-gradient-to-r from-slate-800/80 via-slate-800/60 to-purple-950/40 border border-purple-500/30 rounded-2xl p-5 flex flex-col gap-4 shadow-lg">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-book-open text-purple-400"></i>
+              <span>إدارة كتالوج المنتجات (PDF & رابط الموقع)</span>
+            </h3>
+            <span class="text-xs text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full font-semibold">
+              يُرسل تلقائياً للعميل عند طلبه الكتالوج أو صور المنتجات
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Left: PDF Upload -->
+            <div class="bg-slate-900/60 border border-slate-700/80 rounded-xl p-4 flex flex-col justify-between">
+              <div>
+                <label class="text-xs font-bold text-slate-200 block mb-1 flex items-center justify-between">
+                  <span>ملف الكتالوج الرسمي (PDF)</span>
+                  <span id="catalog-pdf-badge" class="text-[11px] text-amber-300 font-normal">جاري الفحص...</span>
+                </label>
+                <p class="text-xs text-slate-400 mb-3">
+                  يمكنك رفع ملف PDF جديد أو تغييره في أي وقت، وسيتم إرساله كـ مستند في واتساب للعميل مباشرة.
+                </p>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <input type="file" id="catalog-pdf-file-input" accept=".pdf" class="hidden">
+                  <button type="button" onclick="document.getElementById('catalog-pdf-file-input').click()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer shadow">
+                    <i class="fa-solid fa-file-arrow-up"></i>
+                    <span>رفع / تغيير ملف الـ PDF</span>
+                  </button>
+                  <span id="catalog-upload-status" class="text-xs text-slate-400 font-semibold"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Website Link & Send Mode -->
+            <div class="bg-slate-900/60 border border-slate-700/80 rounded-xl p-4 flex flex-col gap-3">
+              <div>
+                <label class="text-xs font-bold text-slate-200 block mb-1">رابط الموقع / الكتالوج الإلكتروني</label>
+                <input type="url" id="catalog-link-input" placeholder="https://hakim-chi.vercel.app/products"
+                  class="w-full bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 font-mono">
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-xs text-slate-400 block mb-1">طريقة الإرسال المفضلة</label>
+                  <select id="catalog-mode-select" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-200">
+                    <option value="pdf_preferred">إرسال ملف الـ PDF أولاً (الموصى به)</option>
+                    <option value="link_only">إرسال رابط الموقع فقط</option>
+                    <option value="both">إرسال الـ PDF ورابط الموقع معاً</option>
+                  </select>
+                </div>
+                <div class="flex items-end">
+                  <button type="button" onclick="saveCatalogSettings()" class="w-full bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/30 font-bold px-3 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>تحديث الرابط والإعدادات</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: WHATSAPP QR CONNECTION -->
+    <div id="tab-connection" class="tab-content hidden flex flex-col items-center justify-center py-10 bg-slate-800/60 border border-slate-700/60 rounded-2xl">
+      <div class="max-w-md w-full text-center flex flex-col items-center gap-5 p-6">
+        
+        <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center text-3xl">
+          <i class="fa-brands fa-whatsapp"></i>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-white mb-1">ربط حساب الواتساب</h2>
+          <p class="text-xs text-slate-400">
+            افتح تطبيق الواتساب على هاتفك > الإعدادات > الأجهزة المرتبطة (Linked Devices) > امسح رمز الـ QR أدناه.
+          </p>
+        </div>
+
+        <!-- QR Box -->
+        <div id="qr-box-container" class="bg-white p-4 rounded-2xl shadow-2xl flex items-center justify-center min-w-[240px] min-h-[240px]">
+          <div id="qr-loader" class="flex flex-col items-center justify-center gap-2 text-slate-600">
+            <i class="fa-solid fa-spinner fa-spin text-3xl text-emerald-600"></i>
+            <span class="text-xs font-bold">جاري توليد رمز الـ QR...</span>
+          </div>
+          <img id="qr-image" class="hidden w-56 h-56 rounded-lg" alt="WhatsApp QR Code">
+        </div>
+
+        <!-- Connection Details when connected -->
+        <div id="connected-card" class="hidden bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 w-full text-center">
+          <div class="text-emerald-400 font-bold text-sm mb-1 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>الواتساب متصل ويعمل بنجاح!</span>
+          </div>
+          <div class="text-xs text-slate-300 mb-3" id="connected-number-label">رقم الهاتف: متصل</div>
+          <button onclick="logoutWhatsApp()" class="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 px-4 py-1.5 rounded-xl text-xs font-bold transition-all">
+            تسجيل الخروج وربط رقم آخر
+          </button>
+        </div>
+
+        <button onclick="requestReconnect()" class="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5">
+          <i class="fa-solid fa-rotate"></i>
+          <span>إعادة المحاولة / تحديث الاتصال</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 5: BRANCHES & SHOWROOMS (LOCATIONS & GOOGLE MAPS) -->
+    <div id="tab-branches" class="tab-content hidden flex flex-col gap-6">
+      
+      <!-- Banner / Header -->
+      <div class="bg-gradient-to-r from-rose-950/40 via-slate-900 to-slate-900 border border-rose-500/30 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-3 mb-1.5">
+            <div class="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-xl">
+              <i class="fa-solid fa-map-location-dot"></i>
+            </div>
+            <div>
+              <h2 class="text-lg font-black text-white flex items-center gap-2">
+                <span>معارض وفروع حكيم جروب ولينكات اللوكيشن (Google Maps)</span>
+                <span class="text-xs bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2.5 py-0.5 rounded-full font-bold">ذكاء جغرافي تلقائي 🧭</span>
+              </h2>
+              <p class="text-xs text-slate-400">
+                سجل معارضك وفروعك ولينكات خرائط جوجل الخاصة بها. عندما يسأل العميل عن مكانكم أو يذكر محافظته، يفهم الذكاء الاصطناعي موقعه تلقائياً ويوجهه لأقرب فرع مع إرسال رابط اللوكيشن المباشر عبر واتساب.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 shrink-0">
+          <button onclick="resetBranchForm(); document.getElementById('branch-form-card').scrollIntoView({ behavior: 'smooth' });"
+            class="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-500 hover:bg-rose-400 text-white transition-all flex items-center gap-2 shadow-lg shadow-rose-500/20">
+            <i class="fa-solid fa-plus"></i>
+            <span>إضافة معرض جديد</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Layout: Form + Test Simulator -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Column 1 & 2: Branches List Table/Cards & AI Simulator -->
+        <div class="lg:col-span-2 flex flex-col gap-6">
+          <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 flex flex-col gap-4">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2.5">
+                <i class="fa-solid fa-store text-rose-400"></i>
+                <h3 class="text-sm font-bold text-white">قائمة المعارض والفروع المسجلة</h3>
+                <span id="branches-count-pill" class="text-xs bg-slate-700 text-slate-300 px-2.5 py-0.5 rounded-full font-semibold">0 فروع</span>
+              </div>
+              <div class="relative w-full sm:w-64">
+                <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                <input type="text" id="branches-search-input" oninput="filterBranchesList()" placeholder="بحث باسم الفرع أو المدينة..."
+                  class="w-full bg-slate-900 border border-slate-700 focus:border-rose-500 rounded-xl pr-9 pl-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none">
+              </div>
+            </div>
+
+            <!-- List Container -->
+            <div id="branches-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Rendered via JS -->
+              <div class="col-span-2 py-8 text-center text-slate-400 text-xs">جاري تحميل الفروع...</div>
+            </div>
+          </div>
+
+          <!-- AI Location Recommendation Simulator Box -->
+          <div class="bg-slate-900/90 border border-purple-500/30 rounded-2xl p-5 flex flex-col gap-3 shadow-xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center text-sm font-bold">
+                  <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">مختبر ذكاء اللوكيشن (AI Simulator)</h4>
+                  <p class="text-[11px] text-slate-400">جرّب كتابة أي سؤال أو محافظة لمعاينة كيف سيرد الذكاء الاصطناعي برابط اللوكيشن</p>
+                </div>
+              </div>
+              <span class="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-mono">اختبار فوري</span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-2">
+              <input type="text" id="branch-test-input" placeholder="مثال: أنا من المنصورة وعاوز أشوف العينات، أو عنوانكم فين في القاهرة؟"
+                class="flex-1 bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                onkeydown="if(event.key === 'Enter') testBranchRecommendation();">
+              <button onclick="testBranchRecommendation()" id="btn-test-branch"
+                class="px-4 py-2 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-300 hover:to-pink-300 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shadow-md">
+                <i class="fa-solid fa-play"></i>
+                <span>فحص الرد</span>
+              </button>
+            </div>
+
+            <!-- Quick Suggestions -->
+            <div class="flex items-center gap-2 flex-wrap text-[11px] text-slate-400">
+              <span class="text-slate-500">اقتراحات سريعة:</span>
+              <button type="button" onclick="setBranchTestQuery('أنا في المنصورة وعاوز أشوف العلب')" class="hover:text-purple-300 underline bg-slate-800/80 px-2 py-0.5 rounded-lg">المنصورة</button>
+              <button type="button" onclick="setBranchTestQuery('مكانكم فين في العاشر من رمضان؟')" class="hover:text-purple-300 underline bg-slate-800/80 px-2 py-0.5 rounded-lg">العاشر من رمضان</button>
+              <button type="button" onclick="setBranchTestQuery('عنوان معرض القاهرة أو الجيزة فين؟')" class="hover:text-purple-300 underline bg-slate-800/80 px-2 py-0.5 rounded-lg">القاهرة والجيزة</button>
+              <button type="button" onclick="setBranchTestQuery('أنا في الإسماعيلية عندكم فرع قريب؟')" class="hover:text-purple-300 underline bg-slate-800/80 px-2 py-0.5 rounded-lg">الإسماعيلية</button>
+              <button type="button" onclick="setBranchTestQuery('عنوانكم فين؟')" class="hover:text-purple-300 underline bg-slate-800/80 px-2 py-0.5 rounded-lg">سؤال عام عن العنوان</button>
+            </div>
+
+            <!-- Simulation Result Output -->
+            <div id="branch-test-output" class="hidden flex flex-col gap-2 pt-3 border-t border-slate-800/80">
+              <!-- Matched Branch Banner -->
+              <div id="branch-test-matched-box" class="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3 flex items-center justify-between flex-wrap gap-2 text-xs">
+                <div class="flex items-center gap-2 text-emerald-300 font-bold">
+                  <i class="fa-solid fa-location-crosshairs text-emerald-400"></i>
+                  <span>الفرع الأقرب الذي اختاره الـ AI:</span>
+                  <span id="branch-test-matched-name" class="text-white bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700"></span>
+                </div>
+                <a id="branch-test-matched-link" href="#" target="_blank" class="text-[11px] text-emerald-400 hover:text-emerald-300 underline flex items-center gap-1 font-bold">
+                  <span>فتح في Google Maps</span>
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+              </div>
+
+              <!-- Simulated Message Bubble -->
+              <div class="text-[11px] text-slate-400 font-semibold">نص الرسالة التي سيتم إرسالها للعميل في واتساب:</div>
+              <div id="branch-test-reply-text" dir="rtl" class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs text-slate-100 whitespace-pre-wrap leading-relaxed font-sans shadow-inner">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column 3: Add / Edit Branch Form -->
+        <div class="flex flex-col gap-4">
+          <div id="branch-form-card" class="bg-slate-800/70 border border-slate-700/70 rounded-2xl p-5 sticky top-24">
+            <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-map-pin text-rose-400"></i>
+                <h3 id="branch-form-title" class="text-sm font-bold text-white">إضافة معرض / فرع جديد</h3>
+              </div>
+              <button type="button" id="branch-form-cancel-btn" onclick="resetBranchForm()" class="hidden text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1">
+                <i class="fa-solid fa-xmark"></i>
+                <span>إلغاء التعديل</span>
+              </button>
+            </div>
+
+            <form id="branch-form" onsubmit="event.preventDefault(); submitBranchForm();" class="flex flex-col gap-3.5">
+              <input type="hidden" id="branch-id" value="">
+
+              <!-- Name -->
+              <div>
+                <label class="block text-xs font-bold text-slate-200 mb-1">
+                  اسم المعرض / الفرع <span class="text-rose-400">*</span>
+                </label>
+                <input type="text" id="branch-name" required placeholder="مثال: معرض المنصورة والدلتا"
+                  class="w-full bg-slate-950 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none">
+              </div>
+
+              <!-- City & Governorate -->
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1">المدينة / الحي <span class="text-rose-400">*</span></label>
+                  <input type="text" id="branch-city" required placeholder="مثال: المنصورة"
+                    class="w-full bg-slate-950 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1">المحافظة</label>
+                  <input type="text" id="branch-governorate" placeholder="مثال: الدقهلية"
+                    class="w-full bg-slate-950 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none">
+                </div>
+              </div>
+
+              <!-- Served Areas (Optional) -->
+              <div>
+                <label class="block text-xs font-bold text-slate-200 mb-1 flex items-center justify-between">
+                  <span>المناطق والمدن المخدومة <span class="text-slate-400 font-normal text-[11px]">(اختياري تماماً)</span></span>
+                  <button type="button" onclick="autoSuggestServedAreas()" class="text-[10px] text-purple-300 hover:text-purple-200 flex items-center gap-1 font-bold transition-all">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                    <span>توليد ذكي ✨</span>
+                  </button>
+                </label>
+                <input type="text" id="branch-served" placeholder="اتركه فارغاً وسيعرفه الـ AI تلقائياً، أو اضغط توليد ذكي"
+                  class="w-full bg-slate-950 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none">
+                <div class="text-[10px] text-slate-400 mt-1">الذكاء الاصطناعي يعرف جغرافية مصر وأحيائها ومراكزها تلقائياً. يمكنك تركه فارغاً بدون أي مشكلة!</div>
+              </div>
+
+              <!-- Google Maps Link -->
+              <div>
+                <label class="block text-xs font-bold text-slate-200 mb-1 flex items-center justify-between">
+                  <span>رابط اللوكيشن (Google Maps Link) <span class="text-rose-400">*</span></span>
+                  <span class="text-[10px] text-emerald-400"><i class="fa-solid fa-link"></i> رابط خرائط</span>
+                </label>
+                <input type="url" id="branch-map-link" required placeholder="https://maps.app.goo.gl/..." dir="ltr"
+                  class="w-full bg-slate-950 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none font-mono text-left">
+                <div class="text-[10px] text-slate-400 mt-1">انسخ رابط المشاركة (Share Link) من تطبيق خرائط جوجل.</div>
+              </div>
+
+              <!-- Detailed Address -->
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">العنوان بالتفصيل</label>
+                <input type="text" id="branch-address" placeholder="مثال: شارع الجيش، أمام المحافظة، المنصورة"
+                  class="w-full bg-slate-950 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none">
+              </div>
+
+              <!-- Phone & Working Hours / Notes -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1">هاتف المعرض</label>
+                  <input type="tel" id="branch-phone" placeholder="01144505575" dir="ltr"
+                    class="w-full bg-slate-950 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none font-mono text-left">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1">مواعيد العمل / ملاحظة</label>
+                  <input type="text" id="branch-notes" placeholder="متاح يومياً 9 ص - 5 م"
+                    class="w-full bg-slate-950 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none">
+                </div>
+              </div>
+
+              <!-- Submit Buttons -->
+              <div class="pt-2 flex items-center gap-2">
+                <button type="submit" id="btn-save-branch"
+                  class="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20">
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  <span id="branch-submit-text">حفظ وتحديث المعرض</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- TAB 6: AI LEAD FINDER & 14-DAY RE-ENGAGEMENT -->
+    <div id="tab-leads" class="tab-content hidden flex flex-col gap-6">
+      
+      <!-- Top Banner -->
+      <div class="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/30 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-3 mb-1.5">
+            <div class="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl">
+              <i class="fa-solid fa-magnifying-glass-chart"></i>
+            </div>
+            <div>
+              <h2 class="text-lg font-black text-white flex items-center gap-2">
+                <span>جمع بيانات العملاء والتنقيب الذكي (AI Lead Finder)</span>
+                <span class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">ذكاء تسويقي آلي 🎯</span>
+              </h2>
+              <p class="text-xs text-slate-400">
+                استخرج بيانات وأرقام واتساب المطاعم، الكافيهات، والشركات في محافظات محددة أو عشوائياً. مع حظر تكرار الأرقام التي تم مراسلتها سابقاً، ونظام مراجعة الأسبوعين الدوري.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
+          <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs">
+            <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+            <span class="text-slate-300 font-bold">حظر التكرار:</span>
+            <span class="text-emerald-400 font-bold">مفعّل تلقائياً</span>
+          </div>
+          <button onclick="scrollTo14DaySection()" class="bg-purple-950/40 hover:bg-purple-900/40 border border-purple-500/30 text-purple-300 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>مراجعة الأسبوعين</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Lead Extraction Parameters Box -->
+      <div class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-5 flex flex-col gap-4">
+        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-amber-400"></i>
+            <span>معايير البحث والتنقيب</span>
+          </h3>
+          <span class="text-xs text-slate-400">حدد نوع النشاط والمحافظات والعدد المطلوب</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Category -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">
+              نوع النشاط المستهدف <span class="text-amber-400">*</span>
+            </label>
+            <select id="leads-category" class="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+              <option value="all">جميع الأنشطة (مطاعم + كافيهات + حلويات + مصانع)</option>
+              <option value="كافيهات">كافيهات ومشروبات (أكواب ورقية، أكواب PET، أغطية)</option>
+              <option value="سوشي">مطاعم سوشي وأسماك (أطباق كريستال، سلطانيات صوص، فوم)</option>
+              <option value="وجبات سريعة">مطاعم برجر وتيك أواي (علب كرتون كرافت، ريزو، استرتش)</option>
+              <option value="حلويات">حلويات ومخابز ومثلجات (علب تورت، سلطانيات حلويات)</option>
+              <option value="شرقي">مطاعم شرقي ومشويات (أطباق فوم، لانش بوكس، ألومنيوم)</option>
+              <option value="مصانع">مصانع مواد غذائية وتعبئة (استرتش صناعي، كرتون شحن)</option>
+            </select>
+          </div>
+
+          <!-- Count -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">
+              عدد العملاء المطلوب استخراجهم
+            </label>
+            <select id="leads-count" class="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none font-bold">
+              <option value="10">10 أماكن (تجربة سريعة)</option>
+              <option value="25">25 مكاناً</option>
+              <option value="50" selected>50 مكاناً (الموصى به للحملات)</option>
+              <option value="100">100 مكان</option>
+            </select>
+          </div>
+
+          <!-- Quick Gov Mode -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">
+              طريقة التوزيع الجغرافي
+            </label>
+            <div class="flex items-center gap-2">
+              <button type="button" id="btn-gov-random" onclick="setGovMode('random')" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center justify-center gap-1.5 transition-all">
+                <i class="fa-solid fa-shuffle"></i>
+                <span>عشوائي من كل مصر</span>
+              </button>
+              <button type="button" id="btn-gov-custom" onclick="setGovMode('custom')" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 border border-slate-700 hover:text-white flex items-center justify-center gap-1.5 transition-all">
+                <i class="fa-solid fa-map-pin"></i>
+                <span>تحديد محافظات بعينها</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Governorates Picker (Visible in Custom mode) -->
+        <div id="custom-govs-container" class="hidden flex flex-col gap-2 pt-2 border-t border-slate-700/60">
+          <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
+            <span class="text-slate-300 font-bold">اختر المحافظات المطلوبة:</span>
+            <div class="flex items-center gap-2 text-[11px]">
+              <button type="button" onclick="selectAllGovs(true)" class="text-amber-400 hover:underline">تحديد الكل</button>
+              <span class="text-slate-600">|</span>
+              <button type="button" onclick="selectAllGovs(false)" class="text-slate-400 hover:underline">إلغاء التحديد</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2" id="govs-checkboxes-grid">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="pt-2 flex items-center justify-between flex-wrap gap-3">
+          <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span>السيستم يستبعد أوتوماتيكياً أي رقم تم التواصل معه من قبل لضمان جودة الحملة الباردة.</span>
+          </div>
+
+          <button type="button" id="btn-start-lead-search" onclick="startAILeadSearch()"
+            class="px-6 py-2.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-300 transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>بدء جمع البيانات بالذكاء الاصطناعي 🚀</span>
+          </button>
+        </div>
+
+        <!-- Progress / Loader -->
+        <div id="leads-search-loader" class="hidden py-8 flex flex-col items-center justify-center gap-3 text-slate-300 bg-slate-950/60 rounded-xl border border-slate-800">
+          <i class="fa-solid fa-circle-notch fa-spin text-3xl text-amber-400"></i>
+          <div class="text-xs font-bold text-white" id="leads-loader-status">جاري التنقيب عن المطاعم والشركات واستخراج أرقام الواتساب...</div>
+          <div class="text-[11px] text-slate-400">يتم فحص وتصفية الأرقام للتأكد من عدم تكرار أي رقم تم التواصل معه من قبل 🛡️</div>
+        </div>
+      </div>
+
+      <!-- Extracted Leads Results Section -->
+      <div id="leads-results-card" class="hidden bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 flex flex-col gap-4">
+        
+        <!-- Action Row -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-700/60 pb-4">
+          <div>
+            <div class="flex items-center gap-2.5 mb-1">
+              <i class="fa-solid fa-list-check text-emerald-400"></i>
+              <h3 class="text-sm font-bold text-white">البيانات التي تم استخراجها</h3>
+              <span id="leads-count-badge" class="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold">0 عميل جديد</span>
+            </div>
+            <div class="text-xs text-slate-400 flex items-center gap-2">
+              <span id="leads-dup-filtered-text" class="text-amber-400 font-semibold">تم استبعاد 0 أرقام مكررة كلمناها قبل كده 🛡️</span>
+            </div>
+          </div>
+
+          <!-- THE TWO REQUESTED BUTTONS -->
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <!-- Option 1: Download Excel -->
+            <button type="button" onclick="downloadLeadsExcel()" id="btn-download-leads"
+              class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 transition-all flex items-center gap-2 shadow-sm">
+              <i class="fa-solid fa-file-excel text-emerald-400 text-sm"></i>
+              <span>تنزيل شيت Excel (إكسيل) 📥</span>
+            </button>
+
+            <!-- Option 2: Start Campaign Directly -->
+            <button type="button" onclick="importLeadsToCampaign()" id="btn-import-campaign"
+              class="px-5 py-2.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+              <i class="fa-solid fa-paper-plane text-sm"></i>
+              <span>بدء حملة مباشرة على هذه الأرقام 🚀</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter within extracted leads -->
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <div class="text-xs text-slate-400">
+            يمكنك تصفح القائمة أو تنزيلها أو إدراجها فوراً في شيت الحملة:
+          </div>
+          <div class="relative w-full sm:w-64">
+            <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+            <input type="text" id="leads-filter-input" oninput="filterGeneratedLeadsTable()" placeholder="تصفية بالاسم أو المحافظة..."
+              class="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-xl pr-9 pl-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Leads Table Container -->
+        <div class="overflow-x-auto rounded-xl border border-slate-700/60">
+          <table class="w-full text-right text-xs">
+            <thead class="bg-slate-900/90 text-slate-400 font-semibold border-b border-slate-700/60">
+              <tr>
+                <th class="p-3 w-10 text-center">م</th>
+                <th class="p-3">اسم المنشأة / المكان</th>
+                <th class="p-3">المسؤول</th>
+                <th class="p-3">المحافظة والمدينة</th>
+                <th class="p-3">نوع النشاط</th>
+                <th class="p-3">رقم الواتساب</th>
+                <th class="p-3">العبوات المقترحة</th>
+                <th class="p-3 text-center">حالة الرقم</th>
+              </tr>
+            </thead>
+            <tbody id="leads-table-body" class="divide-y divide-slate-800 bg-slate-900/40">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION 2: 14-DAY RE-ENGAGEMENT PIPELINE -->
+      <div id="section-14days-followup" class="bg-slate-800/70 border border-purple-500/30 rounded-2xl p-5 flex flex-col gap-4 shadow-xl">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center text-base">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span>مراجعة الأسبوعين (14-Day Re-engagement Pipeline)</span>
+                <span id="followup-14d-badge" class="text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full font-bold">0 عميل</span>
+              </h3>
+              <p class="text-[11px] text-slate-400">
+                العملاء الذين تواصلنا معهم وتفاعلوا، ومرّ على آخر رسالة 14 يوماً فأكثر لإعادة تذكيرهم بنا باحترافية وبدون أي وعود بأسعار أو شحن.
+              </p>
+            </div>
+          </div>
+
+          <button type="button" onclick="load14DayFollowups()" class="px-3 py-1.5 rounded-xl text-xs font-bold text-purple-300 bg-purple-950/40 hover:bg-purple-900/40 border border-purple-500/30 transition-all flex items-center gap-1.5 self-start md:self-auto">
+            <i class="fa-solid fa-rotate"></i>
+            <span>تحديث القائمة</span>
+          </button>
+        </div>
+
+        <!-- Candidates Table Container -->
+        <div id="followup-14d-container" class="overflow-x-auto rounded-xl border border-slate-700/60">
+          <table class="w-full text-right text-xs">
+            <thead class="bg-slate-900/90 text-slate-400 font-semibold border-b border-slate-700/60">
+              <tr>
+                <th class="p-3">العميل / المنشأة</th>
+                <th class="p-3">رقم الواتساب</th>
+                <th class="p-3">المدة المنقضية</th>
+                <th class="p-3">رسالة التذكير المقترحة</th>
+                <th class="p-3 text-center">إجراء</th>
+              </tr>
+            </thead>
+            <tbody id="followup-14d-body" class="divide-y divide-slate-800 bg-slate-900/40">
+              <tr>
+                <td colspan="5" class="py-8 text-center text-slate-400 text-xs">جاري فحص العملاء المؤهلين لمراجعة الأسبوعين...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Modal: Add Contact Manually (Name & Company Optional) -->
+  <div id="add-contact-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-lg shadow-2xl flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg font-bold">
+            <i class="fa-solid fa-user-plus"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-base">إضافة رقم عميل جديد</h3>
+            <p class="text-xs text-slate-400">الرقم إلزامي، واسم الشخص والشركة اختياري تماماً</p>
+          </div>
+        </div>
+        <button onclick="closeAddContactModal()" class="text-slate-400 hover:text-white text-lg p-1.5 transition-all">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="add-contact-form" onsubmit="event.preventDefault(); submitAddContactModal(false);" class="flex flex-col gap-3.5">
+        <!-- Phone (Required) -->
+        <div>
+          <label class="block text-xs font-bold text-emerald-300 mb-1">
+            رقم الهاتف / الواتساب <span class="text-rose-400">* (إلزامي)</span>
+          </label>
+          <div class="relative">
+            <input type="tel" id="modal-phone" required placeholder="010xxxxxxxx أو 2011xxxxxxxx" dir="ltr"
+              class="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none text-left font-mono">
+          </div>
+          <div class="text-[11px] text-slate-500 mt-1">يقبل الأرقام المصرية (01xxxxxxxxx أو 201xxxxxxxxx)</div>
+        </div>
+
+        <!-- Name (Optional) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">
+            اسم الشخص <span class="text-slate-500 font-normal">(اختياري - اتركه فارغاً إن لم تكن تعرفه)</span>
+          </label>
+          <input type="text" id="modal-name" placeholder="مثال: أ. سامي رضوان (سيكتفي الذكاء بـ 'يا فندم' إذا تركته فارغاً)"
+            class="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none">
+        </div>
+
+        <!-- Company / Shop (Optional) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">
+            اسم الشركة أو المحل أو النشاط <span class="text-slate-500 font-normal">(اختياري - اتركه فارغاً إن لم تكن تعرفه)</span>
+          </label>
+          <input type="text" id="modal-company" placeholder="مثال: مطعم جندوفلي، كافيه أروما، مصنع حلوى..."
+            class="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none">
+        </div>
+
+        <!-- City & Activity (Optional) -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">
+              المحافظة / المدينة <span class="text-slate-500 font-normal">(اختياري)</span>
+            </label>
+            <input type="text" id="modal-city" placeholder="العاشر من رمضان، الإسماعيلية..."
+              class="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">
+              النشاط / المنتجات <span class="text-slate-500 font-normal">(اختياري)</span>
+            </label>
+            <input type="text" id="modal-activity" placeholder="مطاعم، كافيهات، حلوى، مصانع..."
+              class="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5 mt-1">
+          <button type="button" onclick="closeAddContactModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-all">
+            إلغاء
+          </button>
+          <button type="button" onclick="submitAddContactModal(false)" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-200 bg-slate-700 hover:bg-slate-600 transition-all flex items-center gap-1.5">
+            <i class="fa-solid fa-list-check"></i>
+            <span>إضافة للحملة</span>
+          </button>
+          <button type="button" onclick="submitAddContactModal(true)" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/20">
+            <i class="fa-brands fa-whatsapp"></i>
+            <span>حفظ وفتح الشات فوراً</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: AI Smart Conversation Follow-up -->
+  <div id="ai-followup-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-purple-500/40 rounded-3xl p-6 w-full max-w-xl shadow-2xl flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center text-lg font-bold">
+            <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-base flex items-center gap-2">
+              <span>تشغيل المحادثة الذكية</span>
+              <span id="followup-context-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">جاري التحليل...</span>
+            </h3>
+            <p class="text-xs text-slate-400" id="followup-contact-label">العميل: جاري التحميل...</p>
+          </div>
+        </div>
+        <button onclick="closeAIFollowupModal()" class="text-slate-400 hover:text-white text-lg p-1.5 transition-all">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div id="followup-loading" class="py-10 flex flex-col items-center justify-center gap-3 text-slate-400">
+        <i class="fa-solid fa-circle-notch fa-spin text-3xl text-purple-400"></i>
+        <div class="text-xs font-bold text-slate-300">جاري قراءة الشات القديم وتوليد الرسالة بالذكاء الاصطناعي...</div>
+      </div>
+
+      <!-- Content Area -->
+      <div id="followup-content" class="hidden flex flex-col gap-3">
+        <div class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+          <span>نص الرسالة المقترحة (يمكنك تعديلها بحرية قبل الإرسال):</span>
+          <button onclick="regenerateFollowup()" class="text-purple-300 hover:text-purple-200 flex items-center gap-1 text-[11px]">
+            <i class="fa-solid fa-rotate-right"></i>
+            <span>إعادة توليد</span>
+          </button>
+        </div>
+
+        <textarea id="followup-text-area" rows="6" dir="rtl"
+          class="w-full bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-2xl p-3.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none leading-relaxed resize-none"></textarea>
+
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-between flex-wrap gap-2">
+          <button type="button" onclick="closeAIFollowupModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-all">
+            إلغاء
+          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="editFollowupInChat()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-200 bg-slate-700 hover:bg-slate-600 transition-all flex items-center gap-1.5">
+              <i class="fa-solid fa-pen-to-square"></i>
+              <span>فتح في صندوق الشات والتعديل</span>
+            </button>
+            <button type="button" id="btn-send-followup-now" onclick="sendFollowupNow()" class="px-5 py-2 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 transition-all flex items-center gap-1.5 shadow-lg shadow-emerald-500/20">
+              <i class="fa-brands fa-whatsapp text-sm"></i>
+              <span>إرسال فوراً عبر واتساب</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.io & App JS (cache busted) -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js?v=4.9"></script>
+</body>
+</html>

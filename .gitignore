@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# WhatsApp Baileys Authentication & Session Data (CRITICAL - NEVER COMMIT)
+data/auth_info_baileys/
+data/whatsapp_auth/
+auth_info/
+*.session
+
+# Live database files & customer chat history
+data/settings.json
+data/contacts.json
+data/chats.json
+data/archive_contacts.json
+data/uploads/
+
+# Customer data files (Protect privacy)
+*.xlsx
+!sample_contacts.xlsx
+!data/template_empty.xlsx
+data/raw_catalog_user.csv
+
+# Temporary / scratch files
+scratch/
+*.log
+npm-debug.log*
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
