@@ -8,7 +8,9 @@
     "desktop": "electron .",
     "electron": "electron .",
     "web": "node server.js",
-    "preview": "electron-builder --dir"
+    "preview": "electron-builder --dir",
+    "release": "electron-builder --win nsis portable --publish never",
+    "dist": "electron-builder --win nsis portable --publish never"
   },
   "keywords": [],
   "author": "",
@@ -39,8 +41,18 @@
       "output": "dist"
     },
     "win": {
-      "target": "dir",
+      "target": [
+        "nsis",
+        "portable"
+      ],
       "icon": "assets/app-icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "وكيل مبيعات واتساب الذكي"
     },
     "files": [
       "**/*",
