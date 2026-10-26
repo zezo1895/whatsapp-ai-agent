@@ -962,3 +962,5 @@ server.listen(PORT, async () => {
   // Auto initialize WhatsApp client on server start
   whatsappService.init();
 });
+
+module.exports = { app, server, PORT };

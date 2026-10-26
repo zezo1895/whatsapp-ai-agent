@@ -1,10 +1,13 @@
 {
   "name": "whatsapp-ai-agent",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
+  "description": "وكيل مبيعات واتساب الذكي - حكيم جروب | Desktop & Web AI Outreach Agent",
+  "main": "electron-main.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "desktop": "electron .",
+    "electron": "electron .",
+    "web": "node server.js"
   },
   "keywords": [],
   "author": "",
@@ -22,5 +25,19 @@
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.4",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0"
+  },
+  "build": {
+    "appId": "com.hakimgroup.whatsappai",
+    "productName": "وكيل مبيعات واتساب الذكي",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/app-icon.ico"
+    }
   }
 }
